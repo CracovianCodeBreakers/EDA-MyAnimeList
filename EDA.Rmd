@@ -2,7 +2,10 @@
 title: "EDA MyAnimeList"
 author: "Kacper Janusz"
 date: "2026-01-11"
-output: html_document
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -125,6 +128,8 @@ str(dataset)
 
 ## Wstępna analiza
 
+### Score
+
 Przechodzę do wstępnej analizy liczb, dostępnych w naszym datasecie.  
 Na pierwszy ogień przeanalizuję końcową ocenę użytkowników, dzięki czemu dowiemy się, w jakim zakresie (0-10) wystawiane są najchętniej oceny
 
@@ -166,13 +171,64 @@ ggplot(dataset, aes(x=dataset$Score))+
   scale_y_log10()
 ```
 
-Teraz lepiej widac rozkład danych nieodstających. Warto byłoby sprawdzić, o co chodzi z tym punktem 6.5.
+Teraz lepiej widac rozkład danych nieodstających. Warto byłoby sprawdzić, o co chodzi z tym punktem 6.5. Odfiltruję zakres od 6.4 do 6.6 aby być pewnym, że złapiemy wszystkie, które otaczają 6.5 i wyznaczę im wskaźniki pozycyjne.
 
 ```{r}
 library(dplyr)
 odstajace <- dataset %>%
   filter(dataset$Score >= 6.4 & dataset$Score <= 6.6)
-summary(odstajace)
+summary(odstajace$Ranked)
+```
 
+Biorąc pod uwagę wartość popularności (im niższa tym wyżej w rankingu = popularniejszy tytuł), mediana pokazuje, że znaczna część danych jest w okolicy trzeciego kwartyla, wobec czego można wnioskować, że rozkład ma skośność lewostronną, ale zweryfikujemy to sobie
+
+```{r}
+ggplot(odstajace, aes(y=odstajace$Ranked, x=odstajace$Score))+
+  geom_line()
 
 ```
+
+Czyli wychodzi na to, że dla wyniku ~6,51 jest nienaturalna liczba rekordów, które co więcej znajdują się w ogonie całego zbioru w liczbie około 3000. Być może jest to wartość domyślna, przypisywana automatycznie? Nie wygląda to bynajmniej naturalnie i ja traktuję to jako daną odstającą. Poniższe badania przeprowadzę na grupie odfiltrowanej z tego zakresu
+
+```{r}
+filtered <- dataset %>%
+  filter(dataset$Score <= 6.5 | dataset$Score >= 6.52)
+
+mean(filtered$Score)
+median(filtered$Score)
+sd(filtered$Score)
+var(filtered$Score)
+
+ggplot(filtered, aes(x=filtered$Score))+
+  geom_histogram(binwidth=.1)
+
+```
+
+Ciekawy wniosek: Mimo usunięcia kompletnie zakresu z odstającymi wartościami, mediana wyszła bardzo zbliżona. Jest wyższa od średniej co każde wnioskować, że skośność również jest lewostronna, ale minimalna. Rozkład ma teraz kształt, który można porównać do rozkładu normalnego. Jaka obserwacja się nasuwa? Użytkownicy chętnie oceniają produkcje ponad połowę skali, i są to głównie wartości w przedziale 5-9 punktów. Rozkład ma wybicie nieco ponad wynikiem 7 gwiazdek (ponieważ to jednostka stosowana w MAL'u), co może wskazywać, że ludzie mają tendencję do traktowania siódemki jako taki "złoty środek" - nie jest to tytuł wybitny, nie jest on średni, jest dobry, w sam raz pomiędzy 5 a 9, ponieważ 10 to już byłoby arcydzieło. Wariancja i odchylenie w granicy jedynki, mamy tutaj dane skupione wokół centrum o niskiej zmienności.
+
+### Type
+
+Zerknijmy na jedną z naszych zmiennych factorowych
+```{r}
+table(dataset$Type)
+
+filtered %>%
+  filter(filtered$Type == "Movie") %>%
+  summarise(median(filtered$Score)) %>%
+  summarise(max(filtered$Score))
+filtered %>%
+  filter(filtered$Type == "TV") %>%
+  summarise(median(filtered$Score))
+filtered %>%
+  filter(filtered$Type == "OVA") %>%
+  summarise(median(filtered$Score))
+filtered %>%
+  filter(filtered$Type == "ONA") %>%
+  summarise(median(filtered$Score))
+filtered %>%
+  filter(filtered$Type == "Special") %>%
+  summarise(median(filtered$Score))
+
+```
+
+Dla wszystkich 
