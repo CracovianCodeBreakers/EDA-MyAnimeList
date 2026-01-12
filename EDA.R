@@ -42,3 +42,5 @@ like <- function(text, searched_string){
 # Funkcja zakłada, że po przecinkach będzie znajdować się dokładnie takie słowo, jakiego szukamy, nie przyjmuje niestety wycinków nazw podobnie
 # jak LIKE w SQL, jednak dobrze, że w ogóle mogę się z tym w ten sposób uporać
 
+
+install.packages("ggplot")

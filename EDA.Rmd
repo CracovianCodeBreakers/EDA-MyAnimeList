@@ -42,10 +42,21 @@ summary(dataset)
 ### Opis kolumn
 Mamy 25 kolumn, w których mamy dane ilościowe, jakościowe, oraz widać od razu, że pewne z nich doskonale byłoby przekonwertować na factory.  
 Kolumny "anime_id", "Name", "English.name", "Japanese.name" to kolumny, które pomagają rozpoznać, o który tytuł dokładnie chodzi. Nie potrzebujemy ich wszystkich na potrzeby naszej analizy, postanowiłem zostawić wyłącznie "English.name" które pozostanie pod nazwą "Name"  
+```{r}
+dataset$Japanese.name <- NULL
+dataset$anime_id <- NULL
+dataset$Name <- dataset$English.name
+dataset$English.name <- NULL
 
+
+```
 Kolumna "Synopsis" to streszczenie konkretnego tytułu, na ten moment nie znajduję przyczyny, aby ją pozostawić. Potencjalnie możnaby dokonać analizy, jak bardzo emocjonalne są powyższe opisy i jak bardzo mogą wpływać na opinię oglądających, jednak pozostawiam ten temat jako opcjonalny na później.  
-
+```{r}
+dataset$sypnopsis <- NULL
+```
 Kolumny "Type", "Episodes", "Aired", "Premiered", "Duration", "Rating"  odnoszą się typowo do okresu release'u produkcji, czyli mówią nam w skrócie: Gdzie, kiedy, i w ilu odcinkach był emitowany serial/film, ile trwał każdy z odcinków, jakie miał ograniczenia wiekowe oraz kiedy pojawiła się w ogóle pierwsza oficjalna wzmianka o nim.  
+
+"Source" oznacza, czy produkcja jest bazowana na opowieści z książki, czy też jest to oryginalna fabuła.  
 
 Mamy również dosępne kilka kolumn, dzięki którym będzie można stworzyć charakterystykę wypuszczanych anime przez konkretne studia "Studios", wydawców "Licensors" oraz producentów "Producers.  
 
@@ -53,36 +64,48 @@ Następna grupa wartości związana jest już stricte ze społecznością fanów
 
 Ostatnia grupa kolumn, to te mówiące o zachowaniu widzów: "Members" mówi dokładnie ile osób oceniło/obejrzało/jakkolwiek "ruszyło" daną produkcję, "Favorites" to dla ilu produkcja znajduje się w kategorii "ulubione", "Watching" to ile osób obecnie ogląda dany tytuł (na co trzeba brać poprawkę ponieważ w wielu przypadkach użytkownicy nie odznaczają obejrzanych już tytułów), "Completed" jako ukończony tytuł, "On.Hold" oznacza, że osoba wstrzymała oglądanie, a "Dropped" to metryka mówiąca ile osób nie skończyło sezonu/filmu, porzucając zakończenie wraz z puentą całego tytułu. 
 
+Najważniejszą z nich jednak zostawiłem na koniec - "Genre", czyli gatunek. Moim zdaniem będzie to bardzo przydatna informacja podczas analizy preferencji użytkowników. Wierzę, że uda się z niej wyciągnąć najwięcej spostrzeżeń.  
 
-
-Wśród nich jest m.in. "Genre" która będzie bardzo przydatna podczas analizy preferencji użytkowników, kolumna "Studios" którą z pewnością przeanalizujemy pod kątem specjalizacji pewnych studiów w konkretnych gatunkach fabuły. Kolumna
-
-```{r Braki}
+```{r}
 library(mice)
 md.pattern(dataset)
 ```
-# Dataset ze strony Kaggle zawierał dwa warianty: raw i filtrowany. Zdecydowałem się operować na filtrowanym, ponieważ raw posiadał
-# ponad 24000 rekordów, a blisko połowa z nich to tytuły które nigdy nie wyszły lub zostały zapomniane przez społecznoŚć
-# Obecny posiada jedynie śladowe braki w kolumnie "Rating" co pozostawiam do późniejszego rozpatrzenia w ciągu poniższego EDA.
+## Braki danych
+Przefiltrowany dataset posiada przeszło 14 tysięcy rekordów, a mimo to zdarzyły się takie, które nie posiadają pewnych informacji. "Rating" to jednak kategoria wiekowa, więc można przypuszczać, że są seriale, które nie miały przyznanej żadnej kategorii, być może przez to, że jeszcze nie wyszły, a może właśnie dlatego, że są tak stare. Postanowiłem zostawić te tytuły i zachować ostrożność podczas filtracji.
 
-# Przechodzę do konwersji datasetu do postaci, w której będę mógł nim swobodnie manipulować
-# Mam kolumny, które proszą się o konwersję na factor.
-# ```{r Factory wstępne}
+## Porządkowanie struktury datasetu
+Przechodzę do konwersji arkusza do postaci, w której będę mógł nim swobodnie manipulować
+Mam kolumny, które wprost proszą się o konwersję na factor.
+
+```{r Factory wstępne}
+table(dataset$Type)
 dataset$Type <- as.factor(dataset$Type)
-dataset$Studios <- as.factor(dataset$Studios)
+table(dataset$Source)
+dataset$Source <- as.factor(dataset$Source)
 ```
-# Ale mam też takie, które choć bym chciał, nie jestem w stanie przekształcić w nieinwazyjny sposób. Kolumny takie jak:
+
+Ale mam też takie, które choć bym chciał, nie jestem w stanie przekształcić w nieinwazyjny sposób. Kolumny takie jak:
+
 ```{r }
-head(dataset$Producers)
-head(dataset$Licensors)
+length(unique(dataset$Studios))
+length(dataset$Studios)
+length(unique(dataset$Producers))
+length(dataset$Producers)
+length(unique(dataset$Licensors))
+length(dataset$Licensors)
 ```
-# I szczególnie:
+
+Pasowałyby jako factor, ale tych wartości jest zbyt wiele, blisko 9-15% całego datasetu, więc pozostawiam je jako napis.
+
+I szczególnie ta, w której pokładam najwięcej nadziei:
+
 ```{r}
 head(dataset$Genres)
+length(unique(dataset$Genres))
 ```
-# Posiadają wiele rekordów rodzielonych przecinkami, więc zdecydowałem się podczas badań na nich, zbudować funkcję, która zadziała
-# na zasadzie "LIKE % %" w SQL. To pozwoli mi bez większych problemów mimo wszystko odszukać rekordy, które zawierają nie tylko tą
-# kategorię, po której filtruję
+
+Posiada one wiele rekordów rodzielonych przecinkami, więc zdecydowałem się na potrzeby badań, zbudować funkcję, która zadziała na zasadzie "LIKE % %" w SQL. To pozwoli mi bez większych problemów mimo wszystko odszukać rekordy, które zawierają nie tylko tą kategorię, po której filtruję (oraz posłużą również do Procudentów, Wydawców i Studiów)
+
 ```{r}
 like <- function(text, searched_string){
   words <- strsplit(text, ",")[[1]]
@@ -90,6 +113,66 @@ like <- function(text, searched_string){
   return(searched_string %in% words)
 }
 ```
-# Funkcja zakłada, że po przecinkach będzie znajdować się dokładnie takie słowo, jakiego szukamy, nie przyjmuje niestety wycinków nazw podobnie
-# jak LIKE w SQL, jednak dobrze, że w ogóle mogę się z tym w ten sposób uporać
 
+Funkcja zakłada, że po przecinkach będzie znajdować się dokładnie takie słowo, jakiego szukamy, nie przyjmuje niestety wycinków nazw podobnie jak LIKE w SQL, jednak dobrze, że w ogóle mogę się z tym w ten sposób uporać.  
+
+Finalny kształt datasetu:
+
+```{r}
+str(dataset)
+
+```
+
+## Wstępna analiza
+
+Przechodzę do wstępnej analizy liczb, dostępnych w naszym datasecie.  
+Na pierwszy ogień przeanalizuję końcową ocenę użytkowników, dzięki czemu dowiemy się, w jakim zakresie (0-10) wystawiane są najchętniej oceny
+
+
+```{r}
+library(ggplot2)
+
+min(dataset$Score)
+max(dataset$Score)
+```
+
+Dane wahają nam się od 1.85 do 9.19, więc biorąc pod uwagę skalę 10-cio stopniową, nie mamy pełnej rozpiętości danych. To wskazuje, że nie ma tytułów, które byłyby jednogłośnie okrzyknięte arcydziełem, ani też tragicznych produkcji. Mimo to, są ekstrema i na pewno coś kierowało odbiorcami, żeby tak ocenić dane anime.
+
+
+```{r}
+
+mean(dataset$Score)
+median(dataset$Score)
+
+```
+
+Średnia i mediana znajdują się z drobnym błędem dokładnie w tym samym punkcie. Mamy tutaj idealną symetrię? Ciekawa sprawa, zobaczmy rozkład tej zmiennej.
+
+
+```{r}
+ggplot(dataset, aes(x=dataset$Score))+
+  geom_histogram(binwidth=.1)
+ggplot(dataset, aes(x=dataset$Score))+
+  geom_histogram(binwidth=.1)+
+  xlim(5, 7)
+```
+
+I sprawa staje się jasna. Pierwszy rzut oka wskazuje nam dwie rzeczy - jest widoczny delikatny rozkład z centrum oscylującym wokół 6.7, natomiast jest też punkt 6.5 który zdaje się być gigantyczną odstającą daną. To tłumaczy skąd mediana i średnia mają taką wartość. Na tą potrzebę mogę spróbować ustawić skalę Y jako logarytmiczną
+
+```{r}
+library(ggplot2)
+ggplot(dataset, aes(x=dataset$Score))+
+  geom_histogram(binwidth=.1)+
+  scale_y_log10()
+```
+
+Teraz lepiej widac rozkład danych nieodstających. Warto byłoby sprawdzić, o co chodzi z tym punktem 6.5.
+
+```{r}
+library(dplyr)
+odstajace <- dataset %>%
+  filter(dataset$Score >= 6.4 & dataset$Score <= 6.6)
+summary(odstajace)
+
+
+```
