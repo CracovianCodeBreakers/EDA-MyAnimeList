@@ -1,0 +1,95 @@
+---
+title: "EDA MyAnimeList"
+author: "Kacper Janusz"
+date: "2026-01-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+## Słowem wstępu
+
+Wśród dostępnych treści rozrywkowych w Polsce, coraz większą popularność zdobywa gatunek "Anime". \
+Jest to japoński nurt, w którym tworzone są seriale oraz filmy, których główną charakterystyczną cechą 
+jest kreowanie opowieści w kreskówkowym świecie, z bardzo specyficznej stylistyce - nieproporcjonalne wymiary 
+twarzy, wielkie oczy, kolorowe włosy. W Polsce coraz częściej można się zetknąć z napływem tytułów
+filmowych w kinach, wobec czego uznałem, że jest to doskonała okazja do przebadania społeczności widzów "anime", 
+oraz poszukanie pewnych wzorców i ciekawych insightów na temat preferencji tej części społeczeństwa.
+
+## Pochodzenie datasetu
+Wszystkie dane przedstawiane w poniższym arkuszu pochodzą z portalu MyAnimeList.net.  
+Jest to jeden z największych portali internetowych, który posiada informacje na temat wszystkich tytułów japońskich seriali rysunkowych, które były, są i będą wydawane.
+Na portalu kaggle pojawia się co roku zestawienie wszystkich tytułów, od najstarszych istniejących rekordów, aż po te, zgromadzone w roku których dotyczy
+dataset. Pochodzi ono dokładnie z danych wyżej wspomnianego serwisu. (Na potrzeby bardziej wnikliwych analiz, deweloperzy udostępnili również API).
+Ja w analizie posłużę się danymi w 2023 roku, z prostego powodu - jest to najlepiej przygotowany dataset wśród tych z pozostałych lat. Wybrałem ten,
+który został przez autora wstępnie przefiltrowany, wobec czego proces schematyzowania zestawu danych powinien przebiec sprawniej.
+
+## Wstępna analiza
+
+```{r Import + struktura}
+dataset <- read.csv("anime-filtered.csv")
+str(dataset)
+```
+
+Nasz dataset składa się w sumie z 25 kolumn i 14952 rekordów. Może się to wydawać kolosalna liczba w konteście skali tej analizy,
+jednak sądzę, że w tym przypadku dobrze jest mieć jak najwięcej datapointów - potencjalne korelacje będą na większej próbie.
+
+```{r}
+summary(dataset)
+```
+### Opis kolumn
+Mamy 25 kolumn, w których mamy dane ilościowe, jakościowe, oraz widać od razu, że pewne z nich doskonale byłoby przekonwertować na factory.  
+Kolumny "anime_id", "Name", "English.name", "Japanese.name" to kolumny, które pomagają rozpoznać, o który tytuł dokładnie chodzi. Nie potrzebujemy ich wszystkich na potrzeby naszej analizy, postanowiłem zostawić wyłącznie "English.name" które pozostanie pod nazwą "Name"  
+
+Kolumna "Synopsis" to streszczenie konkretnego tytułu, na ten moment nie znajduję przyczyny, aby ją pozostawić. Potencjalnie możnaby dokonać analizy, jak bardzo emocjonalne są powyższe opisy i jak bardzo mogą wpływać na opinię oglądających, jednak pozostawiam ten temat jako opcjonalny na później.  
+
+Kolumny "Type", "Episodes", "Aired", "Premiered", "Duration", "Rating"  odnoszą się typowo do okresu release'u produkcji, czyli mówią nam w skrócie: Gdzie, kiedy, i w ilu odcinkach był emitowany serial/film, ile trwał każdy z odcinków, jakie miał ograniczenia wiekowe oraz kiedy pojawiła się w ogóle pierwsza oficjalna wzmianka o nim.  
+
+Mamy również dosępne kilka kolumn, dzięki którym będzie można stworzyć charakterystykę wypuszczanych anime przez konkretne studia "Studios", wydawców "Licensors" oraz producentów "Producers.  
+
+Następna grupa wartości związana jest już stricte ze społecznością fanów anime, ponieważ kolumny "Ranked", "Score" oraz "Popularity" odpowiadają kolejno za miejsce w tabeli najlepszych tytułów, średni wynik punktowy oraz miejsce w tabeli tytułów, które najczęściej były oglądane i oceniane.  
+
+Ostatnia grupa kolumn, to te mówiące o zachowaniu widzów: "Members" mówi dokładnie ile osób oceniło/obejrzało/jakkolwiek "ruszyło" daną produkcję, "Favorites" to dla ilu produkcja znajduje się w kategorii "ulubione", "Watching" to ile osób obecnie ogląda dany tytuł (na co trzeba brać poprawkę ponieważ w wielu przypadkach użytkownicy nie odznaczają obejrzanych już tytułów), "Completed" jako ukończony tytuł, "On.Hold" oznacza, że osoba wstrzymała oglądanie, a "Dropped" to metryka mówiąca ile osób nie skończyło sezonu/filmu, porzucając zakończenie wraz z puentą całego tytułu. 
+
+
+
+Wśród nich jest m.in. "Genre" która będzie bardzo przydatna podczas analizy preferencji użytkowników, kolumna "Studios" którą z pewnością przeanalizujemy pod kątem specjalizacji pewnych studiów w konkretnych gatunkach fabuły. Kolumna
+
+```{r Braki}
+library(mice)
+md.pattern(dataset)
+```
+# Dataset ze strony Kaggle zawierał dwa warianty: raw i filtrowany. Zdecydowałem się operować na filtrowanym, ponieważ raw posiadał
+# ponad 24000 rekordów, a blisko połowa z nich to tytuły które nigdy nie wyszły lub zostały zapomniane przez społecznoŚć
+# Obecny posiada jedynie śladowe braki w kolumnie "Rating" co pozostawiam do późniejszego rozpatrzenia w ciągu poniższego EDA.
+
+# Przechodzę do konwersji datasetu do postaci, w której będę mógł nim swobodnie manipulować
+# Mam kolumny, które proszą się o konwersję na factor.
+# ```{r Factory wstępne}
+dataset$Type <- as.factor(dataset$Type)
+dataset$Studios <- as.factor(dataset$Studios)
+```
+# Ale mam też takie, które choć bym chciał, nie jestem w stanie przekształcić w nieinwazyjny sposób. Kolumny takie jak:
+```{r }
+head(dataset$Producers)
+head(dataset$Licensors)
+```
+# I szczególnie:
+```{r}
+head(dataset$Genres)
+```
+# Posiadają wiele rekordów rodzielonych przecinkami, więc zdecydowałem się podczas badań na nich, zbudować funkcję, która zadziała
+# na zasadzie "LIKE % %" w SQL. To pozwoli mi bez większych problemów mimo wszystko odszukać rekordy, które zawierają nie tylko tą
+# kategorię, po której filtruję
+```{r}
+like <- function(text, searched_string){
+  words <- strsplit(text, ",")[[1]]
+  words <- trimws(words)
+  return(searched_string %in% words)
+}
+```
+# Funkcja zakłada, że po przecinkach będzie znajdować się dokładnie takie słowo, jakiego szukamy, nie przyjmuje niestety wycinków nazw podobnie
+# jak LIKE w SQL, jednak dobrze, że w ogóle mogę się z tym w ten sposób uporać
+
