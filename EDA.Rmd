@@ -3,8 +3,8 @@ title: "EDA MyAnimeList"
 author: "Kacper Janusz"
 date: "2026-01-11"
 output:
-  word_document: default
   html_document: default
+  word_document: default
   pdf_document: default
 ---
 
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 Wśród dostępnych treści rozrywkowych w Polsce, coraz większą popularność zdobywa gatunek "Anime". \
 Jest to japoński nurt, w którym tworzone są seriale oraz filmy, których główną charakterystyczną cechą 
-jest kreowanie opowieści w kreskówkowym świecie, z bardzo specyficznej stylistyce - nieproporcjonalne wymiary 
+jest kreowanie opowieści w kreskówkowym świecie, O bardzo specyficznej stylistyce - nieproporcjonalne wymiary 
 twarzy, wielkie oczy, kolorowe włosy. W Polsce coraz częściej można się zetknąć z napływem tytułów
 filmowych w kinach, wobec czego uznałem, że jest to doskonała okazja do przebadania społeczności widzów "anime", 
 oraz poszukanie pewnych wzorców i ciekawych insightów na temat preferencji tej części społeczeństwa.
@@ -72,6 +72,7 @@ Najważniejszą z nich jednak zostawiłem na koniec - "Genre", czyli gatunek. Mo
 ```{r}
 library(mice)
 md.pattern(dataset)
+
 ```
 ## Braki danych
 Przefiltrowany dataset posiada przeszło 14 tysięcy rekordów, a mimo to zdarzyły się takie, które nie posiadają pewnych informacji. "Rating" to jednak kategoria wiekowa, więc można przypuszczać, że są seriale, które nie miały przyznanej żadnej kategorii, być może przez to, że jeszcze nie wyszły, a może właśnie dlatego, że są tak stare. Postanowiłem zostawić te tytuły i zachować ostrożność podczas filtracji.
@@ -85,6 +86,8 @@ table(dataset$Type)
 dataset$Type <- as.factor(dataset$Type)
 table(dataset$Source)
 dataset$Source <- as.factor(dataset$Source)
+table(dataset$Rating)
+dataset$Rating <- as.factor(dataset$Rating)
 ```
 
 Ale mam też takie, które choć bym chciał, nie jestem w stanie przekształcić w nieinwazyjny sposób. Kolumny takie jak:
@@ -155,9 +158,9 @@ median(dataset$Score)
 
 
 ```{r}
-ggplot(dataset, aes(x=dataset$Score))+
+ggplot(dataset, aes(x=Score))+
   geom_histogram(binwidth=.1)
-ggplot(dataset, aes(x=dataset$Score))+
+ggplot(dataset, aes(x=Score))+
   geom_histogram(binwidth=.1)+
   xlim(5, 7)
 ```
@@ -166,7 +169,7 @@ I sprawa staje się jasna. Pierwszy rzut oka wskazuje nam dwie rzeczy - jest wid
 
 ```{r}
 library(ggplot2)
-ggplot(dataset, aes(x=dataset$Score))+
+ggplot(dataset, aes(x=Score))+
   geom_histogram(binwidth=.1)+
   scale_y_log10()
 ```
@@ -176,7 +179,7 @@ Teraz lepiej widac rozkład danych nieodstających. Warto byłoby sprawdzić, o 
 ```{r}
 library(dplyr)
 odstajace <- dataset %>%
-  filter(dataset$Score >= 6.4 & dataset$Score <= 6.6)
+  filter(Score >= 6.4 & Score <= 6.6)
 summary(odstajace$Ranked)
 ```
 
@@ -188,18 +191,18 @@ ggplot(odstajace, aes(y=odstajace$Ranked, x=odstajace$Score))+
 
 ```
 
-Czyli wychodzi na to, że dla wyniku ~6,51 jest nienaturalna liczba rekordów, które co więcej znajdują się w ogonie całego zbioru w liczbie około 3000. Być może jest to wartość domyślna, przypisywana automatycznie? Nie wygląda to bynajmniej naturalnie i ja traktuję to jako daną odstającą. Poniższe badania przeprowadzę na grupie odfiltrowanej z tego zakresu
+Czyli wychodzi na to, że dla wyniku ~6,51 jest nienaturalna liczba rekordów, które co więcej znajdują się w ogonie całego zbioru w liczbie około 3000. Mediana pozycji w rankingu dla tego zakresu Score'u to miejsce 12227. Być może jest to wartość domyślna, przypisywana automatycznie? Nie wygląda to bynajmniej naturalnie i ja traktuję to jako daną odstającą. Poniższe badania przeprowadzę na grupie odfiltrowanej z tego zakresu
 
 ```{r}
 filtered <- dataset %>%
-  filter(dataset$Score <= 6.5 | dataset$Score >= 6.52)
+  filter(Score <= 6.5 | Score >= 6.52)
 
 mean(filtered$Score)
 median(filtered$Score)
 sd(filtered$Score)
 var(filtered$Score)
 
-ggplot(filtered, aes(x=filtered$Score))+
+ggplot(filtered, aes(x=Score))+
   geom_histogram(binwidth=.1)
 
 ```
@@ -213,22 +216,65 @@ Zerknijmy na jedną z naszych zmiennych factorowych
 table(dataset$Type)
 
 filtered %>%
-  filter(filtered$Type == "Movie") %>%
-  summarise(median(filtered$Score)) %>%
-  summarise(max(filtered$Score))
-filtered %>%
-  filter(filtered$Type == "TV") %>%
-  summarise(median(filtered$Score))
-filtered %>%
-  filter(filtered$Type == "OVA") %>%
-  summarise(median(filtered$Score))
-filtered %>%
-  filter(filtered$Type == "ONA") %>%
-  summarise(median(filtered$Score))
-filtered %>%
-  filter(filtered$Type == "Special") %>%
-  summarise(median(filtered$Score))
+  group_by(Type) %>%
+  summarise(
+    srednia = mean(Score),
+    mediana = median(Score),
+    maksimum = max(Score),
+    minimum = min(Score),
+    odchylenie = sd(Score)
+    )
 
 ```
 
-Dla wszystkich 
+Przefiltrowanie po rodzaju emisji daje nam pierwszy rzut oka na preferencje użytkowników. Największe odchylenie ocen jest w przypadku filmów, potem blisko jednej całości jest przy "ONA" (Original Net Animation czyli emisja w internecie), najmniejsze wahanie widać w przypadku Special czyli dodatków do poszczególnych serii, na zasadzie spin-offów czy bonusu dla fanów. Pojawiają się pierwsze pytania w mojej głowie: Dlaczego to Movie jest najbardziej zróżnicowane względem oceny, a Special najmniej? Moja hipoteza jest taka, że widzowie kinowi podchodzą do produkcji bardziej emocjonalnie, być może ze względu na atmosferę panującą w sali kinowej, a może dlatego, że seansy w porównaniu do streamingu kosztują więcej, więc ludzie są bardziej krytyczni wobec nich. Special natomist to kategoria skierowana do fanów, wobec czego mogą być nią zainteresowane osoby, które obejrzały całą serię bazową, i chcą więcej. Dodatkowo, w przypadku Speciali, minimum również jest wyższe. Warto byłoby zerknąc dodatkowo na metrykę popularności, co doda tym danym głębię.
+
+```{r}
+filtered %>%
+  group_by(Type) %>%
+  summarise(
+    minimum = min(Popularity),
+    kwart1 = quantile(Popularity, 0.25),
+    mediana = median(Popularity),
+    kwart3 = quantile(Popularity, 0.75),
+    maksimum = max(Popularity)
+    )
+```
+
+Wyjaśnia nam się różnica między odcinkami specjalnymi a filmami - te pierwsze mają mniejszą popularność. Ich rozkład jest bardziej przesunięty w prawą stronę względem filmów, co można ukazać na histogramie
+
+```{r}
+films <- filtered %>%
+  filter(Type == "Movie")
+specials <- filtered %>%
+  filter(Type == "Special")
+
+ggplot(films, aes(x=Popularity))+
+  geom_histogram()
+ggplot(specials, aes(x=Popularity))+
+  geom_histogram()
+```
+
+Zobaczmy jeszcze na statystyki liczbowe mówiące o liczbie widzów
+
+```{r}
+filtered %>%
+  filter(Type== "Movie") %>%
+  summarise(
+    suma_interakcji = sum(Watching, Completed, On.Hold, Dropped), 
+    srednia = mean(Completed),
+    mediana = median(Completed)  
+  ) 
+
+filtered %>%
+  filter(Type== "Special") %>%
+  summarise(
+    suma_interakcji = sum(Watching, Completed, On.Hold, Dropped), 
+    srednia = mean(Completed),
+    mediana = median(Completed)  
+  ) 
+```
+
+Wygląda na to, że moje wcześniejsze stwierdzenie nie jest tak dalekie prawdzie. Rzeczywiście łączna liczba, oraz średnia interakcji jest wyższa, ale jednak mediana jest wyższa w przypadku Speciali. To pozwala wysnuć domysł, że społeczności zgromadzone wokół jednego tytułu dość wiernie mu towarzyszą, generując pod bonusowymi odcinkami bardziej przewidywalną oglądalność, niż w przypadku filmów, na które ludzie mogą iść pod wpływem tzw hype'u.  
+
+Pozostawmy rozmyślania o Scorze i przejdźmy do kolejnych kolumn, których tu nie brakuje.
