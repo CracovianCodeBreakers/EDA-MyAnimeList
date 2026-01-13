@@ -29,6 +29,14 @@ dataset. Pochodzi ono dokładnie z danych wyżej wspomnianego serwisu. (Na potrz
 Ja w analizie posłużę się danymi w 2023 roku, z prostego powodu - jest to najlepiej przygotowany dataset wśród tych z pozostałych lat. Wybrałem ten,
 który został przez autora wstępnie przefiltrowany, wobec czego proces schematyzowania zestawu danych powinien przebiec sprawniej.
 
+## Użyte biblioteki
+```{r}
+library(mice)
+library(ggplot2)
+library(dplyr)
+
+```
+
 ## Wstępna analiza
 
 ```{r Import + struktura}
@@ -70,12 +78,29 @@ Ostatnia grupa kolumn, to te mówiące o zachowaniu widzów: "Members" mówi dok
 Najważniejszą z nich jednak zostawiłem na koniec - "Genre", czyli gatunek. Moim zdaniem będzie to bardzo przydatna informacja podczas analizy preferencji użytkowników. Wierzę, że uda się z niej wyciągnąć najwięcej spostrzeżeń.  
 
 ```{r}
-library(mice)
+
 md.pattern(dataset)
 
 ```
 ## Braki danych
 Przefiltrowany dataset posiada przeszło 14 tysięcy rekordów, a mimo to zdarzyły się takie, które nie posiadają pewnych informacji. "Rating" to jednak kategoria wiekowa, więc można przypuszczać, że są seriale, które nie miały przyznanej żadnej kategorii, być może przez to, że jeszcze nie wyszły, a może właśnie dlatego, że są tak stare. Postanowiłem zostawić te tytuły i zachować ostrożność podczas filtracji.
+
+Natomiast czyha jedno zagrożenie które odkryłem w późniejszym etapie analizy (jest to swego rodzaju wiadomość z przyszłośći)
+
+```{r}
+
+dataset %>%
+  filter(Name == "Unknown") %>%
+  summarise(n())
+```
+
+Dlatego odsiewam nieznane tytuły - moim zdaniem każda licząca się produkcja, powinna mieć tytuł. W ten sposób znika nam blisko połowa rekordów.
+
+```{r}
+dataset <- dataset %>%
+  filter(Name != "Unknown")
+
+```
 
 ## Porządkowanie struktury datasetu
 Przechodzę do konwersji arkusza do postaci, w której będę mógł nim swobodnie manipulować
@@ -122,6 +147,12 @@ like <- function(text, searched_string){
 
 Funkcja zakłada, że po przecinkach będzie znajdować się dokładnie takie słowo, jakiego szukamy, nie przyjmuje niestety wycinków nazw podobnie jak LIKE w SQL, jednak dobrze, że w ogóle mogę się z tym w ten sposób uporać.  
 
+Jeszcze tylko kilka poprawek typu zmiennych: 
+```{r}
+dataset$Episodes <- as.numeric(dataset$Episodes)
+
+```
+
 Finalny kształt datasetu:
 
 ```{r}
@@ -138,13 +169,12 @@ Na pierwszy ogień przeanalizuję końcową ocenę użytkowników, dzięki czemu
 
 
 ```{r}
-library(ggplot2)
 
 min(dataset$Score)
 max(dataset$Score)
 ```
 
-Dane wahają nam się od 1.85 do 9.19, więc biorąc pod uwagę skalę 10-cio stopniową, nie mamy pełnej rozpiętości danych. To wskazuje, że nie ma tytułów, które byłyby jednogłośnie okrzyknięte arcydziełem, ani też tragicznych produkcji. Mimo to, są ekstrema i na pewno coś kierowało odbiorcami, żeby tak ocenić dane anime.
+Dane wahają nam się od 2.01 do 9.19, więc biorąc pod uwagę skalę 10-cio stopniową, nie mamy pełnej rozpiętości danych. To wskazuje, że nie ma tytułów, które byłyby jednogłośnie okrzyknięte arcydziełem, ani też tragicznych produkcji. Mimo to, są ekstrema i na pewno coś kierowało odbiorcami, żeby tak ocenić dane anime.
 
 
 ```{r}
@@ -168,7 +198,7 @@ ggplot(dataset, aes(x=Score))+
 I sprawa staje się jasna. Pierwszy rzut oka wskazuje nam dwie rzeczy - jest widoczny delikatny rozkład z centrum oscylującym wokół 6.7, natomiast jest też punkt 6.5 który zdaje się być gigantyczną odstającą daną. To tłumaczy skąd mediana i średnia mają taką wartość. Na tą potrzebę mogę spróbować ustawić skalę Y jako logarytmiczną
 
 ```{r}
-library(ggplot2)
+
 ggplot(dataset, aes(x=Score))+
   geom_histogram(binwidth=.1)+
   scale_y_log10()
@@ -177,21 +207,13 @@ ggplot(dataset, aes(x=Score))+
 Teraz lepiej widac rozkład danych nieodstających. Warto byłoby sprawdzić, o co chodzi z tym punktem 6.5. Odfiltruję zakres od 6.4 do 6.6 aby być pewnym, że złapiemy wszystkie, które otaczają 6.5 i wyznaczę im wskaźniki pozycyjne.
 
 ```{r}
-library(dplyr)
+
 odstajace <- dataset %>%
   filter(Score >= 6.4 & Score <= 6.6)
 summary(odstajace$Ranked)
 ```
 
-Biorąc pod uwagę wartość popularności (im niższa tym wyżej w rankingu = popularniejszy tytuł), mediana pokazuje, że znaczna część danych jest w okolicy trzeciego kwartyla, wobec czego można wnioskować, że rozkład ma skośność lewostronną, ale zweryfikujemy to sobie
-
-```{r}
-ggplot(odstajace, aes(y=odstajace$Ranked, x=odstajace$Score))+
-  geom_line()
-
-```
-
-Czyli wychodzi na to, że dla wyniku ~6,51 jest nienaturalna liczba rekordów, które co więcej znajdują się w ogonie całego zbioru w liczbie około 3000. Mediana pozycji w rankingu dla tego zakresu Score'u to miejsce 12227. Być może jest to wartość domyślna, przypisywana automatycznie? Nie wygląda to bynajmniej naturalnie i ja traktuję to jako daną odstającą. Poniższe badania przeprowadzę na grupie odfiltrowanej z tego zakresu
+Biorąc pod uwagę wartość popularności (im niższa tym wyżej w rankingu = popularniejszy tytuł), mediana pokazuje, że znaczna część danych jest w okolicy trzeciego kwartyla, wobec czego można wnioskować, że rozkład ma skośność lewostronną. Być może jest to wartość domyślna, przypisywana automatycznie? Nie wygląda to bynajmniej naturalnie i ja traktuję to jako daną odstającą. Poniższe badania przeprowadzę na grupie odfiltrowanej z tego zakresu
 
 ```{r}
 filtered <- dataset %>%
@@ -207,7 +229,7 @@ ggplot(filtered, aes(x=Score))+
 
 ```
 
-Ciekawy wniosek: Mimo usunięcia kompletnie zakresu z odstającymi wartościami, mediana wyszła bardzo zbliżona. Jest wyższa od średniej co każde wnioskować, że skośność również jest lewostronna, ale minimalna. Rozkład ma teraz kształt, który można porównać do rozkładu normalnego. Jaka obserwacja się nasuwa? Użytkownicy chętnie oceniają produkcje ponad połowę skali, i są to głównie wartości w przedziale 5-9 punktów. Rozkład ma wybicie nieco ponad wynikiem 7 gwiazdek (ponieważ to jednostka stosowana w MAL'u), co może wskazywać, że ludzie mają tendencję do traktowania siódemki jako taki "złoty środek" - nie jest to tytuł wybitny, nie jest on średni, jest dobry, w sam raz pomiędzy 5 a 9, ponieważ 10 to już byłoby arcydzieło. Wariancja i odchylenie w granicy jedynki, mamy tutaj dane skupione wokół centrum o niskiej zmienności.
+Mediana wyszła dzięki temu wyższa. Jest wyższa od średniej co każde wnioskować, że skośność również jest lewostronna, ale minimalna. Rozkład ma teraz kształt, który można porównać do rozkładu normalnego. Jaka obserwacja się nasuwa? Użytkownicy chętnie oceniają produkcje ponad połowę skali, i są to głównie wartości w przedziale 5-9 punktów. Rozkład ma wybicie nieco ponad wynikiem 7 gwiazdek (ponieważ to jednostka stosowana w MAL'u), co może wskazywać, że ludzie mają tendencję do traktowania siódemki jako taki "złoty środek" - nie jest to tytuł wybitny, nie jest on średni, jest dobry, w sam raz pomiędzy 5 a 9, ponieważ 10 to już byłoby arcydzieło. Wariancja i odchylenie w granicy jedynki, mamy tutaj dane skupione wokół centrum o niskiej zmienności.
 
 ### Type
 
@@ -255,7 +277,7 @@ ggplot(specials, aes(x=Popularity))+
   geom_histogram()
 ```
 
-Zobaczmy jeszcze na statystyki liczbowe mówiące o liczbie widzów
+Wychodzi na to, że filmy są albo dobre, albo niedobre (moim zdaniem bardzo uniwersalna prawda), jednak histogram rzeczywiście pokazuje kształt wielbłąda o garbie blisko czołówki rankungu, a drugi za połową. Zobaczmy jeszcze na statystyki liczbowe mówiące o liczbie widzów
 
 ```{r}
 filtered %>%
@@ -277,4 +299,102 @@ filtered %>%
 
 Wygląda na to, że moje wcześniejsze stwierdzenie nie jest tak dalekie prawdzie. Rzeczywiście łączna liczba, oraz średnia interakcji jest wyższa, ale jednak mediana jest wyższa w przypadku Speciali. To pozwala wysnuć domysł, że społeczności zgromadzone wokół jednego tytułu dość wiernie mu towarzyszą, generując pod bonusowymi odcinkami bardziej przewidywalną oglądalność, niż w przypadku filmów, na które ludzie mogą iść pod wpływem tzw hype'u.  
 
-Pozostawmy rozmyślania o Scorze i przejdźmy do kolejnych kolumn, których tu nie brakuje.
+```{r}
+
+ggplot(filtered, aes(x=Popularity, y=Score, color=Type))+
+  geom_point()
+```
+
+W tym przypadku widać doskonale czarnego konia, którym jest kategoria "TV" mająca przewagę wśród najpopularniejszych serii, oraz również przodująca pod kątem wyniku punktowego. Gdy spojrzymy ponownie na tabelkę z medianą i średnią, rzeczywiście to TV przoduje. Również TV posiada rekord o najwyższym ustanowionym wyniku punktowym, warto się przyjrzeć, co to dokładnie za seria. Wezmę od razu 3 tytuły z najlepszą oceną:
+```{r}
+filtered %>%
+  filter(Type=="TV") %>%
+  arrange(desc(Score)) %>%
+  slice_max(Score, n=3)
+```
+
+Otrzymaliśmy czołówkę, uważaną za najlepsze tytuły wszechczasów (przez większość). Warto zauważyć, że dwa pierwsze tytuły bazują na tzw. "Mandze" czyli Japońskiej wersji komiksów. Trzecia natomiast bazowana jest na "Visual Novel" czyli książce przeplatanej sporadycznie grafikami. Spróbuję rozrysować podobny scatterplot jak wyżej
+
+```{r}
+ggplot(filtered, aes(x=Popularity, y=Score, color=Source))+
+  geom_point()
+```
+Jest to ciekawy wykres, ale zbyt barwny. Zobaczmy jakie są najliczniejsze gatunki i one zostaną.
+
+```{r}
+table(filtered$Source)
+clear_sources <-filtered %>%
+  group_by(Source) %>%
+  filter(Source=="Manga" | Source == "Original" | Source== "Game")  
+ggplot(clear_sources, aes(x=Popularity, y=Score, color=Source))+
+  geom_point()
+
+```
+
+Teraz lepiej widać, że zdecydowana większość topowych Anime oparta jest na mandze. Być może wynika to z sentymentu widzów, którzy znają już historię, a teraz mają okazję doświadczyć ekranizacji ich ulubionych postaci? A może ekranizacje mang są po prostu doskonałe i nie ma znaczenia czy ktoś tą mangę zna czy nie, ona mimo wszystko trzyma pewien poziom? Jako osoba, która od pięciu lat interesuje się tym środowiskiem, osobiście mam wrażenie, że oba stwierdzenia mają pokrycie w empirii. Trzeci source czyli gry, to bardzo rozproszony zbiór punktów, który nie charakteryzuje się zwiększoną obecnością ani w czołówce, ani w peletonie. Oglądając tak te punkty, aż prosi się o zbadanie korelacji
+
+```{r}
+correlations <- filtered %>%
+  group_by(Source) %>%
+  summarise(
+    korelacja = cor(Popularity, Score, method = "pearson")
+  )
+print(correlations)
+```
+
+Najjaśniejsza korelacja widnieje w przypadku muzyki, jednak na poprzednim scatterplocie piosenki zajmowały zdecydowanie miejsce na końcowych lokatach. Później silna korelacja jest w przypadku książki, Mangi, Originalu i Visual Novelki a także 4-koma mangi, czyli takiej opowieści komiksowej, która nakierowana jest na skecz sytuacjyjny i wobec czego jest zamknięta w czterech właśnie panelach na stronie.
+
+### Episodes
+
+Kolejna kolumna, czyli liczba odcinków danej serii
+
+```{r}
+summary(filtered$Episodes)
+
+filtered$Episodes <- as.numeric(filtered$Episodes)
+ggplot(filtered, aes(x=Episodes))+
+  geom_histogram(binwidth=1)
+
+filtered$Episodes <- as.numeric(filtered$Episodes)
+ggplot(filtered, aes(x=Episodes))+
+  xlim(0,50)+
+  scale_y_log10()+
+  geom_histogram(binwidth=1)
+
+
+```
+
+Widać rozkład który ma długi prawy ogon, jednak interesują mnie te charakterystyczne "dzidy" na początku. Czy te wartości są jakieś szczególne? 
+
+```{r}
+filtered$Episodes <- as.numeric(filtered$Episodes)
+ggplot(filtered, aes(x=Episodes))+
+  xlim(0, 30)+
+  scale_y_log10()+
+  geom_histogram(binwidth=1)
+```
+
+Tutaj dokładnie widać te skoki, 1, 12, 26. To są przyjęte przez społeczność standardowe długości serii. 1 to film/OVA/Special, 12 to standardowy sezon, a 25/26 to zazwyczaj produkcje kończące się na jednym sezonie. Gdy spojrzymy na miejsce 2 oraz 3 w rankingu, to obie te serie trwają właśnie kolejno 16 i 24 odcinki, natomiast pierwsza jest niestandardowa i składa się z 64 odcinków. Są jeszcze dwa garby
+```{r}
+ggplot(filtered, aes(x=Episodes))+
+  xlim(30, 50)+
+  scale_y_log10()+
+  geom_histogram(binwidth=1)
+```
+
+39 i 48 to kolejne popularne długości serii. Czy długość sezonu ma jakiś wpływ na popularność albo ocenę anime?
+
+```{r}
+
+ggplot(filtered, aes(x=Score, y=Episodes, color=Type))+
+  scale_y_log10()+
+  geom_point()
+```
+
+Tworzy nam się ciekawy pattern drabinki. Można z niej wywnioskować dwie rzeczy - Anime nadawane za pośrednictwem TV mają zasadniczo najwięcej odcinków, oraz znajdują się w czołówce wyniku, o czym mówiliśmy już wcześniej, natomiast może to też działać w drugą stronę - te produkcje, które spodobały się widowni, otrzymały kolejny i kolejny sezon, w wyniku czego odstające wartości w okolicach tysiąca to nie jakaś niszowa produkcja którą jakiś ambitny artysta tworzył w zaciszu domowym całe życie, ale również jedna z legendarnych anime:
+
+```{r}
+filtered %>%
+  arrange(desc(Episodes)) %>%
+  slice_max(Episodes, n=5)
+```
