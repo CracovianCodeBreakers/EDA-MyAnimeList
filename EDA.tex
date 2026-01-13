@@ -117,7 +117,7 @@ Wśród dostępnych treści rozrywkowych w Polsce, coraz większą popularność
 zdobywa gatunek ``Anime''.\\
 Jest to japoński nurt, w którym tworzone są seriale oraz filmy, których
 główną charakterystyczną cechą jest kreowanie opowieści w kreskówkowym
-świecie, z bardzo specyficznej stylistyce - nieproporcjonalne wymiary
+świecie, O bardzo specyficznej stylistyce - nieproporcjonalne wymiary
 twarzy, wielkie oczy, kolorowe włosy. W Polsce coraz częściej można się
 zetknąć z napływem tytułów filmowych w kinach, wobec czego uznałem, że
 jest to doskonała okazja do przebadania społeczności widzów ``anime'',
@@ -139,6 +139,17 @@ posłużę się danymi w 2023 roku, z prostego powodu - jest to najlepiej
 przygotowany dataset wśród tych z pozostałych lat. Wybrałem ten, który
 został przez autora wstępnie przefiltrowany, wobec czego proces
 schematyzowania zestawu danych powinien przebiec sprawniej.
+
+\subsection{Użyte biblioteki}\label{uux17cyte-biblioteki}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(mice)}
+\FunctionTok{library}\NormalTok{(ggplot2)}
+\FunctionTok{library}\NormalTok{(dplyr)}
+\FunctionTok{library}\NormalTok{(stringr)}
+\end{Highlighting}
+\end{Shaded}
 
 \subsection{Wstępna analiza}\label{wstux119pna-analiza}
 
@@ -314,12 +325,11 @@ najwięcej spostrzeżeń.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{library}\NormalTok{(mice)}
 \FunctionTok{md.pattern}\NormalTok{(dataset)}
 \end{Highlighting}
 \end{Shaded}
 
-\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-4-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-5-1.pdf}}
 
 \begin{verbatim}
 ##       Name Score Genres Type Episodes Aired Premiered Producers Licensors
@@ -345,6 +355,33 @@ które nie miały przyznanej żadnej kategorii, być może przez to, że
 jeszcze nie wyszły, a może właśnie dlatego, że są tak stare.
 Postanowiłem zostawić te tytuły i zachować ostrożność podczas filtracji.
 
+Natomiast czyha jedno zagrożenie które odkryłem w późniejszym etapie
+analizy (jest to swego rodzaju wiadomość z przyszłośći)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dataset }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(Name }\SpecialCharTok{==} \StringTok{"Unknown"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}\FunctionTok{n}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    n()
+## 1 8554
+\end{verbatim}
+
+Dlatego odsiewam nieznane tytuły - moim zdaniem każda licząca się
+produkcja, powinna mieć tytuł. W ten sposób znika nam blisko połowa
+rekordów.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dataset }\OtherTok{\textless{}{-}}\NormalTok{ dataset }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(Name }\SpecialCharTok{!=} \StringTok{"Unknown"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
 \subsection{Porządkowanie struktury
 datasetu}\label{porzux105dkowanie-struktury-datasetu}
 
@@ -361,7 +398,7 @@ na factor.
 \begin{verbatim}
 ## 
 ##   Movie   Music     ONA     OVA Special      TV Unknown 
-##    2636     744    1531    3364    1991    4650      36
+##    1278     187     510    1128     530    2761       4
 \end{verbatim}
 
 \begin{Shaded}
@@ -374,18 +411,37 @@ na factor.
 \begin{verbatim}
 ## 
 ##  4-koma manga          Book     Card game Digital manga          Game 
-##           277            87            64            15           829 
+##           121            46            29             7           393 
 ##   Light novel         Manga         Music         Novel      Original 
-##           768          3764           215           485          3720 
+##           460          1764            58           251          1659 
 ##         Other  Picture book         Radio       Unknown  Visual novel 
-##           444            76             9          2974           988 
+##           152            34             2           972           330 
 ##     Web manga 
-##           237
+##           120
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
 \NormalTok{dataset}\SpecialCharTok{$}\NormalTok{Source }\OtherTok{\textless{}{-}} \FunctionTok{as.factor}\NormalTok{(dataset}\SpecialCharTok{$}\NormalTok{Source)}
+\FunctionTok{table}\NormalTok{(dataset}\SpecialCharTok{$}\NormalTok{Rating)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##                   G - All Ages      PG-13 - Teens 13 or older 
+##                           1304                           2863 
+##                  PG - Children R - 17+ (violence & profanity) 
+##                            514                            697 
+##               R+ - Mild Nudity                    Rx - Hentai 
+##                            496                            403 
+##                        Unknown 
+##                            121
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dataset}\SpecialCharTok{$}\NormalTok{Rating }\OtherTok{\textless{}{-}} \FunctionTok{as.factor}\NormalTok{(dataset}\SpecialCharTok{$}\NormalTok{Rating)}
 \end{Highlighting}
 \end{Shaded}
 
@@ -399,7 +455,7 @@ przekształcić w nieinwazyjny sposób. Kolumny takie jak:
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 1048
+## [1] 659
 \end{verbatim}
 
 \begin{Shaded}
@@ -409,7 +465,7 @@ przekształcić w nieinwazyjny sposób. Kolumny takie jak:
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 14952
+## [1] 6398
 \end{verbatim}
 
 \begin{Shaded}
@@ -419,7 +475,7 @@ przekształcić w nieinwazyjny sposób. Kolumny takie jak:
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 3714
+## [1] 2500
 \end{verbatim}
 
 \begin{Shaded}
@@ -429,7 +485,7 @@ przekształcić w nieinwazyjny sposób. Kolumny takie jak:
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 14952
+## [1] 6398
 \end{verbatim}
 
 \begin{Shaded}
@@ -439,7 +495,7 @@ przekształcić w nieinwazyjny sposób. Kolumny takie jak:
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 231
+## [1] 211
 \end{verbatim}
 
 \begin{Shaded}
@@ -449,7 +505,7 @@ przekształcić w nieinwazyjny sposób. Kolumny takie jak:
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 14952
+## [1] 6398
 \end{verbatim}
 
 Pasowałyby jako factor, ale tych wartości jest zbyt wiele, blisko 9-15\%
@@ -469,7 +525,7 @@ I szczególnie ta, w której pokładam najwięcej nadziei:
 ## [3] "Action, Sci-Fi, Adventure, Comedy, Drama, Shounen"  
 ## [4] "Action, Mystery, Police, Supernatural, Drama, Magic"
 ## [5] "Adventure, Fantasy, Shounen, Supernatural"          
-## [6] "Action, Sports, Comedy, Shounen"
+## [6] "Comedy, Drama, Josei, Romance, Slice of Life"
 \end{verbatim}
 
 \begin{Shaded}
@@ -479,30 +535,20 @@ I szczególnie ta, w której pokładam najwięcej nadziei:
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 4839
+## [1] 3011
 \end{verbatim}
 
 Posiada one wiele rekordów rodzielonych przecinkami, więc zdecydowałem
-się na potrzeby badań, zbudować funkcję, która zadziała na zasadzie
-``LIKE \% \%'' w SQL. To pozwoli mi bez większych problemów mimo
-wszystko odszukać rekordy, które zawierają nie tylko tą kategorię, po
-której filtruję (oraz posłużą również do Procudentów, Wydawców i
-Studiów)
+się na potrzeby badań, skorzystać z pakietu ``stringr'' który pomoże mi
+po prostu wykryć w ciągu znaków konkretny gatunek.
+
+Jeszcze tylko kilka poprawek typu zmiennych:
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{like }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(text, searched\_string)\{}
-\NormalTok{  words }\OtherTok{\textless{}{-}} \FunctionTok{strsplit}\NormalTok{(text, }\StringTok{","}\NormalTok{)[[}\DecValTok{1}\NormalTok{]]}
-\NormalTok{  words }\OtherTok{\textless{}{-}} \FunctionTok{trimws}\NormalTok{(words)}
-  \FunctionTok{return}\NormalTok{(searched\_string }\SpecialCharTok{\%in\%}\NormalTok{ words)}
-\NormalTok{\}}
+\NormalTok{dataset}\SpecialCharTok{$}\NormalTok{Episodes }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(dataset}\SpecialCharTok{$}\NormalTok{Episodes)}
 \end{Highlighting}
 \end{Shaded}
-
-Funkcja zakłada, że po przecinkach będzie znajdować się dokładnie takie
-słowo, jakiego szukamy, nie przyjmuje niestety wycinków nazw podobnie
-jak LIKE w SQL, jednak dobrze, że w ogóle mogę się z tym w ten sposób
-uporać.
 
 Finalny kształt datasetu:
 
@@ -513,12 +559,12 @@ Finalny kształt datasetu:
 \end{Shaded}
 
 \begin{verbatim}
-## 'data.frame':    14952 obs. of  21 variables:
+## 'data.frame':    6398 obs. of  21 variables:
 ##  $ Name      : chr  "Cowboy Bebop" "Cowboy Bebop:The Movie" "Trigun" "Witch Hunter Robin" ...
-##  $ Score     : num  8.78 8.39 8.24 7.27 6.98 7.95 8.06 7.59 8.15 8.76 ...
+##  $ Score     : num  8.78 8.39 8.24 7.27 6.98 8.06 8.76 7.91 8.52 7.9 ...
 ##  $ Genres    : chr  "Action, Adventure, Comedy, Drama, Sci-Fi, Space" "Action, Drama, Mystery, Sci-Fi, Space" "Action, Sci-Fi, Adventure, Comedy, Drama, Shounen" "Action, Mystery, Police, Supernatural, Drama, Magic" ...
 ##  $ Type      : Factor w/ 7 levels "Movie","Music",..: 6 1 6 6 6 6 6 6 6 6 ...
-##  $ Episodes  : chr  "26" "1" "26" "26" ...
+##  $ Episodes  : num  26 1 26 26 52 24 74 220 NA 178 ...
 ##  $ Aired     : chr  "Apr 3, 1998 to Apr 24, 1999" "Sep 1, 2001" "Apr 1, 1998 to Sep 30, 1998" "Jul 2, 2002 to Dec 24, 2002" ...
 ##  $ Premiered : chr  "Spring 1998" "Unknown" "Spring 1998" "Summer 2002" ...
 ##  $ Producers : chr  "Bandai Visual" "Sunrise, Bandai Visual" "Victor Entertainment" "TV Tokyo, Bandai Visual, Dentsu, Victor Entertainment" ...
@@ -526,18 +572,18 @@ Finalny kształt datasetu:
 ##  $ Studios   : chr  "Sunrise" "Bones" "Madhouse" "Sunrise" ...
 ##  $ Source    : Factor w/ 16 levels "4-koma manga",..: 10 10 7 10 7 7 7 7 7 7 ...
 ##  $ Duration  : chr  "24 min. per ep." "1 hr. 55 min." "24 min. per ep." "25 min. per ep." ...
-##  $ Rating    : chr  "R - 17+ (violence & profanity)" "R - 17+ (violence & profanity)" "PG-13 - Teens 13 or older" "PG-13 - Teens 13 or older" ...
+##  $ Rating    : Factor w/ 7 levels "G - All Ages",..: 4 4 2 2 3 2 5 2 2 2 ...
 ##  $ Ranked    : num  28 159 266 2481 3710 ...
-##  $ Popularity: int  39 518 201 1467 4369 1003 687 3612 1233 169 ...
-##  $ Members   : int  1251960 273145 558913 94683 13224 148259 214499 20470 117929 614100 ...
-##  $ Favorites : int  61971 1174 12944 587 18 2066 4101 231 979 29436 ...
-##  $ Watching  : int  105808 4143 29113 4300 642 13907 11909 817 6082 64648 ...
-##  $ Completed : int  718161 208333 343492 46165 7314 78349 81145 13778 90967 214491 ...
-##  $ On.Hold   : int  71513 1935 25465 5121 766 14228 11901 828 3053 47488 ...
-##  $ Dropped   : int  26678 770 13925 5378 1108 11573 11026 1168 1356 23008 ...
+##  $ Popularity: int  39 518 201 1467 4369 687 169 8 31 1039 ...
+##  $ Members   : int  1251960 273145 558913 94683 13224 214499 614100 1830540 1352724 141832 ...
+##  $ Favorites : int  61971 1174 12944 587 18 4101 29436 65586 126645 3124 ...
+##  $ Watching  : int  105808 4143 29113 4300 642 11909 64648 137167 887333 11235 ...
+##  $ Completed : int  718161 208333 343492 46165 7314 81145 214491 1462223 33 76881 ...
+##  $ On.Hold   : int  71513 1935 25465 5121 766 11901 47488 61734 187919 12905 ...
+##  $ Dropped   : int  26678 770 13925 5378 1108 11026 23008 99806 136245 12516 ...
 \end{verbatim}
 
-\subsection{Wstępna analiza}\label{wstux119pna-analiza-1}
+\subsection{Analiza danych}\label{analiza-danych}
 
 \subsubsection{Score}\label{score}
 
@@ -547,14 +593,12 @@ dowiemy się, w jakim zakresie (0-10) wystawiane są najchętniej oceny
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{library}\NormalTok{(ggplot2)}
-
 \FunctionTok{min}\NormalTok{(dataset}\SpecialCharTok{$}\NormalTok{Score)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 1.85
+## [1] 2.01
 \end{verbatim}
 
 \begin{Shaded}
@@ -567,7 +611,7 @@ dowiemy się, w jakim zakresie (0-10) wystawiane są najchętniej oceny
 ## [1] 9.19
 \end{verbatim}
 
-Dane wahają nam się od 1.85 do 9.19, więc biorąc pod uwagę skalę 10-cio
+Dane wahają nam się od 2.01 do 9.19, więc biorąc pod uwagę skalę 10-cio
 stopniową, nie mamy pełnej rozpiętości danych. To wskazuje, że nie ma
 tytułów, które byłyby jednogłośnie okrzyknięte arcydziełem, ani też
 tragicznych produkcji. Mimo to, są ekstrema i na pewno coś kierowało
@@ -580,7 +624,7 @@ odbiorcami, żeby tak ocenić dane anime.
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 6.511526
+## [1] 6.667427
 \end{verbatim}
 
 \begin{Shaded}
@@ -590,7 +634,7 @@ odbiorcami, żeby tak ocenić dane anime.
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 6.51
+## [1] 6.6
 \end{verbatim}
 
 Średnia i mediana znajdują się z drobnym błędem dokładnie w tym samym
@@ -599,22 +643,22 @@ tej zmiennej.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{ggplot}\NormalTok{(dataset, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{dataset}\SpecialCharTok{$}\NormalTok{Score))}\SpecialCharTok{+}
+\FunctionTok{ggplot}\NormalTok{(dataset, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Score))}\SpecialCharTok{+}
   \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth=}\NormalTok{.}\DecValTok{1}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-11-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-14-1.pdf}}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{ggplot}\NormalTok{(dataset, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{dataset}\SpecialCharTok{$}\NormalTok{Score))}\SpecialCharTok{+}
+\FunctionTok{ggplot}\NormalTok{(dataset, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Score))}\SpecialCharTok{+}
   \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth=}\NormalTok{.}\DecValTok{1}\NormalTok{)}\SpecialCharTok{+}
   \FunctionTok{xlim}\NormalTok{(}\DecValTok{5}\NormalTok{, }\DecValTok{7}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-11-2.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-14-2.pdf}}
 
 I sprawa staje się jasna. Pierwszy rzut oka wskazuje nam dwie rzeczy -
 jest widoczny delikatny rozkład z centrum oscylującym wokół 6.7,
@@ -624,14 +668,13 @@ potrzebę mogę spróbować ustawić skalę Y jako logarytmiczną
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{library}\NormalTok{(ggplot2)}
-\FunctionTok{ggplot}\NormalTok{(dataset, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{dataset}\SpecialCharTok{$}\NormalTok{Score))}\SpecialCharTok{+}
+\FunctionTok{ggplot}\NormalTok{(dataset, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Score))}\SpecialCharTok{+}
   \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth=}\NormalTok{.}\DecValTok{1}\NormalTok{)}\SpecialCharTok{+}
   \FunctionTok{scale\_y\_log10}\NormalTok{()}
 \end{Highlighting}
 \end{Shaded}
 
-\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-12-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-15-1.pdf}}
 
 Teraz lepiej widac rozkład danych nieodstających. Warto byłoby
 sprawdzić, o co chodzi z tym punktem 6.5. Odfiltruję zakres od 6.4 do
@@ -640,50 +683,36 @@ im wskaźniki pozycyjne.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{library}\NormalTok{(dplyr)}
 \NormalTok{odstajace }\OtherTok{\textless{}{-}}\NormalTok{ dataset }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(dataset}\SpecialCharTok{$}\NormalTok{Score }\SpecialCharTok{\textgreater{}=} \FloatTok{6.4} \SpecialCharTok{\&}\NormalTok{ dataset}\SpecialCharTok{$}\NormalTok{Score }\SpecialCharTok{\textless{}=} \FloatTok{6.6}\NormalTok{)}
+  \FunctionTok{filter}\NormalTok{(Score }\SpecialCharTok{\textgreater{}=} \FloatTok{6.4} \SpecialCharTok{\&}\NormalTok{ Score }\SpecialCharTok{\textless{}=} \FloatTok{6.6}\NormalTok{)}
 \FunctionTok{summary}\NormalTok{(odstajace}\SpecialCharTok{$}\NormalTok{Ranked)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-##    5343    6172   12227   10914   13978   15780     516
+##    5343    5871    6407    9574   13350   15730      97
 \end{verbatim}
 
 Biorąc pod uwagę wartość popularności (im niższa tym wyżej w rankingu =
 popularniejszy tytuł), mediana pokazuje, że znaczna część danych jest w
 okolicy trzeciego kwartyla, wobec czego można wnioskować, że rozkład ma
-skośność lewostronną, ale zweryfikujemy to sobie
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\FunctionTok{ggplot}\NormalTok{(odstajace, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{y=}\NormalTok{odstajace}\SpecialCharTok{$}\NormalTok{Ranked, }\AttributeTok{x=}\NormalTok{odstajace}\SpecialCharTok{$}\NormalTok{Score))}\SpecialCharTok{+}
-  \FunctionTok{geom\_line}\NormalTok{()}
-\end{Highlighting}
-\end{Shaded}
-
-\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-14-1.pdf}}
-
-Czyli wychodzi na to, że dla wyniku \textasciitilde6,51 jest
-nienaturalna liczba rekordów, które co więcej znajdują się w ogonie
-całego zbioru w liczbie około 3000. Być może jest to wartość domyślna,
-przypisywana automatycznie? Nie wygląda to bynajmniej naturalnie i ja
-traktuję to jako daną odstającą. Poniższe badania przeprowadzę na grupie
+skośność lewostronną. Być może jest to wartość domyślna, przypisywana
+automatycznie? Nie wygląda to bynajmniej naturalnie i ja traktuję to
+jako daną odstającą. Poniższe badania przeprowadzę na grupie
 odfiltrowanej z tego zakresu
 
 \begin{Shaded}
 \begin{Highlighting}[]
 \NormalTok{filtered }\OtherTok{\textless{}{-}}\NormalTok{ dataset }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(dataset}\SpecialCharTok{$}\NormalTok{Score }\SpecialCharTok{\textless{}=} \FloatTok{6.5} \SpecialCharTok{|}\NormalTok{ dataset}\SpecialCharTok{$}\NormalTok{Score }\SpecialCharTok{\textgreater{}=} \FloatTok{6.52}\NormalTok{)}
+  \FunctionTok{filter}\NormalTok{(Score }\SpecialCharTok{\textless{}=} \FloatTok{6.5} \SpecialCharTok{|}\NormalTok{ Score }\SpecialCharTok{\textgreater{}=} \FloatTok{6.52}\NormalTok{)}
 
 \FunctionTok{mean}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Score)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 6.51185
+## [1] 6.68324
 \end{verbatim}
 
 \begin{Shaded}
@@ -693,7 +722,7 @@ odfiltrowanej z tego zakresu
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 6.53
+## [1] 6.71
 \end{verbatim}
 
 \begin{Shaded}
@@ -703,7 +732,7 @@ odfiltrowanej z tego zakresu
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 0.8888103
+## [1] 0.9171482
 \end{verbatim}
 
 \begin{Shaded}
@@ -713,23 +742,22 @@ odfiltrowanej z tego zakresu
 \end{Shaded}
 
 \begin{verbatim}
-## [1] 0.7899837
+## [1] 0.8411607
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{filtered}\SpecialCharTok{$}\NormalTok{Score))}\SpecialCharTok{+}
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Score))}\SpecialCharTok{+}
   \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth=}\NormalTok{.}\DecValTok{1}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-15-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-17-1.pdf}}
 
-Ciekawy wniosek: Mimo usunięcia kompletnie zakresu z odstającymi
-wartościami, mediana wyszła bardzo zbliżona. Jest wyższa od średniej co
-każde wnioskować, że skośność również jest lewostronna, ale minimalna.
-Rozkład ma teraz kształt, który można porównać do rozkładu normalnego.
-Jaka obserwacja się nasuwa? Użytkownicy chętnie oceniają produkcje ponad
+Mediana wyszła dzięki temu wyższa. Jest wyższa od średniej co każde
+wnioskować, że skośność również jest lewostronna, ale minimalna. Rozkład
+ma teraz kształt, który można porównać do rozkładu normalnego. Jaka
+obserwacja się nasuwa? Użytkownicy chętnie oceniają produkcje ponad
 połowę skali, i są to głównie wartości w przedziale 5-9 punktów. Rozkład
 ma wybicie nieco ponad wynikiem 7 gwiazdek (ponieważ to jednostka
 stosowana w MAL'u), co może wskazywać, że ludzie mają tendencję do
@@ -751,75 +779,682 @@ Zerknijmy na jedną z naszych zmiennych factorowych
 \begin{verbatim}
 ## 
 ##   Movie   Music     ONA     OVA Special      TV Unknown 
-##    2636     744    1531    3364    1991    4650      36
+##    1278     187     510    1128     530    2761       4
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
 \NormalTok{filtered }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Type }\SpecialCharTok{==} \StringTok{"Movie"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\FunctionTok{median}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Score)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\FunctionTok{max}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Score))}
+  \FunctionTok{group\_by}\NormalTok{(Type) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{srednia =} \FunctionTok{mean}\NormalTok{(Score),}
+    \AttributeTok{mediana =} \FunctionTok{median}\NormalTok{(Score),}
+    \AttributeTok{maksimum =} \FunctionTok{max}\NormalTok{(Score),}
+    \AttributeTok{minimum =} \FunctionTok{min}\NormalTok{(Score),}
+    \AttributeTok{odchylenie =} \FunctionTok{sd}\NormalTok{(Score)}
+\NormalTok{    )}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-##   max(filtered$Score)
-## 1                9.19
+## # A tibble: 6 x 6
+##   Type    srednia mediana maksimum minimum odchylenie
+##   <fct>     <dbl>   <dbl>    <dbl>   <dbl>      <dbl>
+## 1 Movie      6.56    6.68     9       2.63      1.08 
+## 2 Music      6.01    5.85     8.34    3.41      0.832
+## 3 ONA        6.32    6.32     8.58    3.39      0.870
+## 4 OVA        6.24    6.18     9.07    2.01      0.813
+## 5 Special    6.65    6.65     8.57    3.47      0.728
+## 6 TV         7.02    7.05     9.19    3.41      0.777
+\end{verbatim}
+
+Przefiltrowanie po rodzaju emisji daje nam pierwszy rzut oka na
+preferencje użytkowników. Największe odchylenie ocen jest w przypadku
+filmów, potem blisko jednej całości jest przy ``ONA'' (Original Net
+Animation czyli emisja w internecie), najmniejsze wahanie widać w
+przypadku Special czyli dodatków do poszczególnych serii, na zasadzie
+spin-offów czy bonusu dla fanów. Pojawiają się pierwsze pytania w mojej
+głowie: Dlaczego to Movie jest najbardziej zróżnicowane względem oceny,
+a Special najmniej? Moja hipoteza jest taka, że widzowie kinowi
+podchodzą do produkcji bardziej emocjonalnie, być może ze względu na
+atmosferę panującą w sali kinowej, a może dlatego, że seansy w
+porównaniu do streamingu kosztują więcej, więc ludzie są bardziej
+krytyczni wobec nich. Special natomist to kategoria skierowana do fanów,
+wobec czego mogą być nią zainteresowane osoby, które obejrzały całą
+serię bazową, i chcą więcej. Dodatkowo, w przypadku Speciali, minimum
+również jest wyższe. Warto byłoby zerknąc dodatkowo na metrykę
+popularności, co doda tym danym głębię.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{filtered }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(Type) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{minimum =} \FunctionTok{min}\NormalTok{(Popularity),}
+    \AttributeTok{kwart1 =} \FunctionTok{quantile}\NormalTok{(Popularity, }\FloatTok{0.25}\NormalTok{),}
+    \AttributeTok{mediana =} \FunctionTok{median}\NormalTok{(Popularity),}
+    \AttributeTok{kwart3 =} \FunctionTok{quantile}\NormalTok{(Popularity, }\FloatTok{0.75}\NormalTok{),}
+    \AttributeTok{maksimum =} \FunctionTok{max}\NormalTok{(Popularity)}
+\NormalTok{    )}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 6 x 6
+##   Type    minimum kwart1 mediana kwart3 maksimum
+##   <fct>     <int>  <dbl>   <dbl>  <dbl>    <int>
+## 1 Movie        11  2556.   6676  10586.    14876
+## 2 Music       539 10044.  12059  13553     14826
+## 3 ONA         153  4742.   8164. 10810.    14516
+## 4 OVA         143  4694.   7224   8964.    13360
+## 5 Special     397  2989    5296   7950     14516
+## 6 TV            1   815    2029   4746.    12953
+\end{verbatim}
+
+Wyjaśnia nam się różnica między odcinkami specjalnymi a filmami - te
+pierwsze mają mniejszą popularność. Ich rozkład jest bardziej
+przesunięty w prawą stronę względem filmów, co można ukazać na
+histogramie
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{films }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(Type }\SpecialCharTok{==} \StringTok{"Movie"}\NormalTok{)}
+\NormalTok{specials }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(Type }\SpecialCharTok{==} \StringTok{"Special"}\NormalTok{)}
+
+\FunctionTok{ggplot}\NormalTok{(films, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Popularity))}\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-20-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(specials, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Popularity))}\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-20-2.pdf}}
+
+Wychodzi na to, że filmy są albo dobre, albo niedobre (moim zdaniem
+bardzo uniwersalna prawda), jednak histogram rzeczywiście pokazuje
+kształt wielbłąda o garbie blisko czołówki rankungu, a drugi za połową.
+Zobaczmy jeszcze na statystyki liczbowe mówiące o liczbie widzów
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{filtered }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(Type}\SpecialCharTok{==} \StringTok{"Movie"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{suma\_interakcji =} \FunctionTok{sum}\NormalTok{(Watching, Completed, On.Hold, Dropped), }
+    \AttributeTok{srednia =} \FunctionTok{mean}\NormalTok{(Completed),}
+    \AttributeTok{mediana =} \FunctionTok{median}\NormalTok{(Completed)  }
+\NormalTok{  ) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   suma_interakcji  srednia mediana
+## 1        40681913 34758.95  2680.5
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
 \NormalTok{filtered }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Type }\SpecialCharTok{==} \StringTok{"TV"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\FunctionTok{median}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Score))}
+  \FunctionTok{filter}\NormalTok{(Type}\SpecialCharTok{==} \StringTok{"Special"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{suma\_interakcji =} \FunctionTok{sum}\NormalTok{(Watching, Completed, On.Hold, Dropped), }
+    \AttributeTok{srednia =} \FunctionTok{mean}\NormalTok{(Completed),}
+    \AttributeTok{mediana =} \FunctionTok{median}\NormalTok{(Completed)  }
+\NormalTok{  ) }
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-##   median(filtered$Score)
-## 1                   6.53
+##   suma_interakcji  srednia mediana
+## 1         9764699 18513.58    5076
 \end{verbatim}
+
+Wygląda na to, że moje wcześniejsze stwierdzenie nie jest tak dalekie
+prawdzie. Rzeczywiście łączna liczba, oraz średnia interakcji jest
+wyższa, ale jednak mediana jest wyższa w przypadku Speciali. To pozwala
+wysnuć domysł, że społeczności zgromadzone wokół jednego tytułu dość
+wiernie mu towarzyszą, generując pod bonusowymi odcinkami bardziej
+przewidywalną oglądalność, niż w przypadku filmów, na które ludzie mogą
+iść pod wpływem tzw hype'u.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Popularity, }\AttributeTok{y=}\NormalTok{Score, }\AttributeTok{color=}\NormalTok{Type))}\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-22-1.pdf}}
+
+W tym przypadku widać doskonale czarnego konia, którym jest kategoria
+``TV'' mająca przewagę wśród najpopularniejszych serii, oraz również
+przodująca pod kątem wyniku punktowego. Gdy spojrzymy ponownie na
+tabelkę z medianą i średnią, rzeczywiście to TV przoduje. Również TV
+posiada rekord o najwyższym ustanowionym wyniku punktowym, warto się
+przyjrzeć, co to dokładnie za seria. Wezmę od razu 3 tytuły z najlepszą
+oceną:
 
 \begin{Shaded}
 \begin{Highlighting}[]
 \NormalTok{filtered }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Type }\SpecialCharTok{==} \StringTok{"OVA"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\FunctionTok{median}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Score))}
+  \FunctionTok{filter}\NormalTok{(Type}\SpecialCharTok{==}\StringTok{"TV"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{arrange}\NormalTok{(}\FunctionTok{desc}\NormalTok{(Score)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{slice\_max}\NormalTok{(Score, }\AttributeTok{n=}\DecValTok{3}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-##   median(filtered$Score)
-## 1                   6.53
+##                              Name Score
+## 1 Fullmetal Alchemist:Brotherhood  9.19
+## 2    Attack on Titan Final Season  9.17
+## 3                     Steins;Gate  9.11
+##                                                                Genres Type
+## 1 Action, Military, Adventure, Comedy, Drama, Magic, Fantasy, Shounen   TV
+## 2     Action, Military, Mystery, Super Power, Drama, Fantasy, Shounen   TV
+## 3                                                    Thriller, Sci-Fi   TV
+##   Episodes                       Aired   Premiered
+## 1       64  Apr 5, 2009 to Jul 4, 2010 Spring 2009
+## 2       16            Dec 7, 2020 to ? Winter 2021
+## 3       24 Apr 6, 2011 to Sep 14, 2011 Spring 2011
+##                                                                                                           Producers
+## 1                                                Aniplex, Square Enix, Mainichi Broadcasting System, Studio Moriken
+## 2 Production I.G, Dentsu, Mainichi Broadcasting System, Pony Canyon, Kodansha, Techno Sound, Pony Canyon Enterprise
+## 3                                    Frontier Works, Media Factory, Movic, AT-X, Kadokawa Pictures Japan, Nitroplus
+##                        Licensors   Studios       Source        Duration
+## 1 Funimation, Aniplex of America     Bones        Manga 24 min. per ep.
+## 2                     Funimation     MAPPA        Manga 23 min. per ep.
+## 3                     Funimation White Fox Visual novel 24 min. per ep.
+##                           Rating Ranked Popularity Members Favorites Watching
+## 1 R - 17+ (violence & profanity)      1          3 2248456    183914   171871
+## 2 R - 17+ (violence & profanity)      2        119  733260     44862   566239
+## 3      PG-13 - Teens 13 or older      3          9 1771162    148452   114349
+##   Completed On.Hold Dropped
+## 1   1644938   75728   32456
+## 2       553    6658    2090
+## 3   1134756   60926   35600
+\end{verbatim}
+
+Otrzymaliśmy czołówkę, uważaną za najlepsze tytuły wszechczasów (przez
+większość). Warto zauważyć, że dwa pierwsze tytuły bazują na tzw.
+``Mandze'' czyli Japońskiej wersji komiksów. Trzecia natomiast bazowana
+jest na ``Visual Novel'' czyli książce przeplatanej sporadycznie
+grafikami. Spróbuję rozrysować podobny scatterplot jak wyżej
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Popularity, }\AttributeTok{y=}\NormalTok{Score, }\AttributeTok{color=}\NormalTok{Source))}\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-24-1.pdf}}
+Jest to ciekawy wykres, ale zbyt barwny. Zobaczmy jakie są
+najliczniejsze gatunki i one zostaną.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{table}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Source)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  4-koma manga          Book     Card game Digital manga          Game 
+##           119            43            27             7           371 
+##   Light novel         Manga         Music         Novel      Original 
+##           443          1699            54           227          1477 
+##         Other  Picture book         Radio       Unknown  Visual novel 
+##           127            21             2           761           329 
+##     Web manga 
+##           107
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{filtered }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Type }\SpecialCharTok{==} \StringTok{"ONA"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\FunctionTok{median}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Score))}
+\NormalTok{clear\_sources }\OtherTok{\textless{}{-}}\NormalTok{filtered }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(Source) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(Source}\SpecialCharTok{==}\StringTok{"Manga"} \SpecialCharTok{|}\NormalTok{ Source }\SpecialCharTok{==} \StringTok{"Original"} \SpecialCharTok{|}\NormalTok{ Source}\SpecialCharTok{==} \StringTok{"Game"}\NormalTok{)  }
+\FunctionTok{ggplot}\NormalTok{(clear\_sources, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Popularity, }\AttributeTok{y=}\NormalTok{Score, }\AttributeTok{color=}\NormalTok{Source))}\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-25-1.pdf}}
+
+Teraz lepiej widać, że zdecydowana większość topowych Anime oparta jest
+na mandze. Być może wynika to z sentymentu widzów, którzy znają już
+historię, a teraz mają okazję doświadczyć ekranizacji ich ulubionych
+postaci? A może ekranizacje mang są po prostu doskonałe i nie ma
+znaczenia czy ktoś tą mangę zna czy nie, ona mimo wszystko trzyma pewien
+poziom? Jako osoba, która od pięciu lat interesuje się tym środowiskiem,
+osobiście mam wrażenie, że oba stwierdzenia mają pokrycie w empirii.
+Trzeci source czyli gry, to bardzo rozproszony zbiór punktów, który nie
+charakteryzuje się zwiększoną obecnością ani w czołówce, ani w
+peletonie. Oglądając tak te punkty, aż prosi się o zbadanie korelacji
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{correlations }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(Source) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{korelacja =} \FunctionTok{cor}\NormalTok{(Popularity, Score, }\AttributeTok{method =} \StringTok{"pearson"}\NormalTok{)}
+\NormalTok{  )}
+\FunctionTok{print}\NormalTok{(correlations)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-##   median(filtered$Score)
-## 1                   6.53
+## # A tibble: 16 x 2
+##    Source        korelacja
+##    <fct>             <dbl>
+##  1 4-koma manga    -0.632 
+##  2 Book            -0.700 
+##  3 Card game       -0.760 
+##  4 Digital manga   -0.0343
+##  5 Game            -0.469 
+##  6 Light novel     -0.469 
+##  7 Manga           -0.662 
+##  8 Music           -0.816 
+##  9 Novel           -0.552 
+## 10 Original        -0.720 
+## 11 Other           -0.569 
+## 12 Picture book    -0.479 
+## 13 Radio           -1     
+## 14 Unknown         -0.593 
+## 15 Visual novel    -0.683 
+## 16 Web manga       -0.489
+\end{verbatim}
+
+Najjaśniejsza korelacja widnieje w przypadku radio i muzyki, jednak na
+poprzednim scatterplocie piosenki zajmowały zdecydowanie miejsce na
+końcowych lokatach. Później silna korelacja jest w przypadku książki,
+Mangi, Originalu i Visual Novelki a także 4-koma mangi, czyli takiej
+opowieści komiksowej, która nakierowana jest na skecz sytuacjyjny i
+wobec czego jest zamknięta w czterech właśnie panelach na stronie.
+
+\subsubsection{Episodes}\label{episodes}
+
+Kolejna kolumna, czyli liczba odcinków danej serii
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Episodes)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##    1.00    1.00    6.00   13.75   13.00 1787.00      24
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
+\NormalTok{filtered}\SpecialCharTok{$}\NormalTok{Episodes }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Episodes)}
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Episodes))}\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth=}\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-27-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{filtered}\SpecialCharTok{$}\NormalTok{Episodes }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Episodes)}
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Episodes))}\SpecialCharTok{+}
+  \FunctionTok{xlim}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{50}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{scale\_y\_log10}\NormalTok{()}\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth=}\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-27-2.pdf}}
+
+Widać rozkład który ma długi prawy ogon, jednak interesują mnie te
+charakterystyczne ``dzidy'' na początku. Czy te wartości są jakieś
+szczególne?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{filtered}\SpecialCharTok{$}\NormalTok{Episodes }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Episodes)}
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Episodes))}\SpecialCharTok{+}
+  \FunctionTok{xlim}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{30}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{scale\_y\_log10}\NormalTok{()}\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth=}\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-28-1.pdf}}
+
+Tutaj dokładnie widać te skoki, 1, 12, 26. To są przyjęte przez
+społeczność standardowe długości serii. 1 to film/OVA/Special, 12 to
+standardowy sezon, a 25/26 to zazwyczaj produkcje kończące się na jednym
+sezonie. Gdy spojrzymy na miejsce 2 oraz 3 w rankingu, to obie te serie
+trwają właśnie kolejno 16 i 24 odcinki, natomiast pierwsza jest
+niestandardowa i składa się z 64 odcinków. Są jeszcze dwa garby
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Episodes))}\SpecialCharTok{+}
+  \FunctionTok{xlim}\NormalTok{(}\DecValTok{30}\NormalTok{, }\DecValTok{50}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{scale\_y\_log10}\NormalTok{()}\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth=}\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-29-1.pdf}}
+
+39 i 48 to kolejne popularne długości serii. Czy długość sezonu ma jakiś
+wpływ na popularność albo ocenę anime?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Score, }\AttributeTok{y=}\NormalTok{Episodes, }\AttributeTok{color=}\NormalTok{Type))}\SpecialCharTok{+}
+  \FunctionTok{scale\_y\_log10}\NormalTok{()}\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-30-1.pdf}}
+
+Tworzy nam się ciekawy pattern drabinki. Można z niej wywnioskować dwie
+rzeczy - Anime nadawane za pośrednictwem TV mają zasadniczo najwięcej
+odcinków, oraz znajdują się w czołówce wyniku, o czym mówiliśmy już
+wcześniej, natomiast może to też działać w drugą stronę - te produkcje,
+które spodobały się widowni, otrzymały kolejny i kolejny sezon, w wyniku
+czego odstające wartości w okolicach tysiąca to nie przypadek, a
+wieloletnie serie, które trwają tak długo jak ``Klan'' w porównaniu do
+innych polskich seriali:
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \NormalTok{filtered }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Type }\SpecialCharTok{==} \StringTok{"Special"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\FunctionTok{median}\NormalTok{(filtered}\SpecialCharTok{$}\NormalTok{Score))}
+  \FunctionTok{arrange}\NormalTok{(}\FunctionTok{desc}\NormalTok{(Episodes)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{slice\_max}\NormalTok{(Episodes, }\AttributeTok{n=}\DecValTok{5}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-##   median(filtered$Score)
-## 1                   6.53
+##                    Name Score
+## 1              Doraemon  7.70
+## 2 The Affectuous Family  5.80
+## 3     Ninja Hattori-kun  6.81
+## 4       Superkid (1983)  6.41
+## 5      Naruto:Shippuden  8.16
+##                                                          Genres Type Episodes
+## 1             Adventure, Comedy, Fantasy, Kids, Sci-Fi, Shounen   TV     1787
+## 2                                                        Comedy   TV     1428
+## 3                  Slice of Life, Comedy, Martial Arts, Shounen   TV      694
+## 4                             Kids, Comedy, Super Power, School   TV      526
+## 5 Action, Adventure, Comedy, Super Power, Martial Arts, Shounen   TV      500
+##                          Aired   Premiered
+## 1  Apr 2, 1979 to Mar 18, 2005 Spring 1979
+## 2  Oct 1, 1976 to Mar 31, 1982   Fall 1976
+## 3 Sep 28, 1981 to Dec 25, 1987   Fall 1981
+## 4   Apr 4, 1983 to Jul 2, 1985 Spring 1983
+## 5 Feb 15, 2007 to Mar 23, 2017 Winter 2007
+##                                                     Producers Licensors
+## 1                                         TV Asahi, Asatsu DK   Unknown
+## 2                                                     Unknown   Unknown
+## 3                                                     Unknown   Unknown
+## 4                                         TV Asahi, Asatsu DK   Unknown
+## 5 TV Tokyo, Aniplex, KSS, Rakuonsha, TV Tokyo Music, Shueisha VIZ Media
+##             Studios  Source        Duration                    Rating Ranked
+## 1 Shin-Ei Animation   Manga 11 min. per ep.             PG - Children   1021
+## 2             Eiken Unknown  5 min. per ep.              G - All Ages   8851
+## 3 Shin-Ei Animation   Manga 10 min. per ep.              G - All Ages   4382
+## 4 Shin-Ei Animation Unknown 12 min. per ep.             PG - Children   6341
+## 5    Studio Pierrot   Manga 23 min. per ep. PG-13 - Teens 13 or older    345
+##   Popularity Members Favorites Watching Completed On.Hold Dropped
+## 1       2598   38555       401     3381     21246    3622    6353
+## 2      11852     560         0       23       311      12      77
+## 3       5799    6613        25      284      4235     398    1045
+## 4       8753    2087        15       98      1297     126     318
+## 5         18 1543765     84651   362124    865643  109707  124253
 \end{verbatim}
 
-Dla wszystkich
+A jak ilość odcinków ma się do popularności?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(filtered, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Episodes, }\AttributeTok{y=}\NormalTok{Popularity, }\AttributeTok{color=}\NormalTok{Type))}\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha=}\FloatTok{0.7}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{scale\_x\_log10}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-32-1.pdf}}
+
+Z tego wykresu mogę tylko wyciągnąć wniosek, że to raczej ilość odcinków
+wynika w popularności, a nie popularność z ilości odcinków. Filmy
+przewijają się przez całe spektrum popularności, natomiast serie
+telewizyjne nie mają tendencji spadać na aż tak niskie lokaty. Widać też
+teraz lepiej, że serie TV zazwyczaj mają powyżej 10-ciu odcinków
+natomiast OVA kręcą się w okolicy 3-10 odcinków. Tak to wygląda
+prawdopodobnie ze względu na to, że OVA czyli kategoria podobna do
+``Special'', która zakłada jednak, że jest to dodatek jednak
+pełnowymiarowy do podstawowej opowieści, nie jest tak mocno
+ustrukturyzowana i ilość odcinków w takich ``sezonach'' waha się w
+granicach kilku. Może to wskazywać na to, że studia nie mają ciśnienia
+ze strony wydawców, na trzymanie się ramowych ilości odcinków uznanych
+za standard. Dzięki temu, te produkcje nie są tak rozwleczone, tylko
+dokładnie tyle, ile twórcy chcą przekazać, zamykają w dogodnej ilości
+odcinków.
+
+\subsubsection{Rating wiekowy}\label{rating-wiekowy}
+
+Jako zmienna factorowa, będzie to dość proste
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rating }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(Rating)}
+
+\FunctionTok{ggplot}\NormalTok{(rating, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Score, }\AttributeTok{y=}\NormalTok{Rating))}\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-33-1.pdf}}
+
+Wykres pięknie obrazuje pozycyjne statystki dla każdej z kategorii
+wiekowych. Mediana wyników punktowych jest najwyższa w przypadku grupy R
+- 17+, a największe rozproszenie występuje w przypadku R+ - Mild Nudity
+oraz G - All Ages/
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(rating, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Episodes, }\AttributeTok{y=}\NormalTok{Rating))}\SpecialCharTok{+}
+  \FunctionTok{xlim}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{50}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-34-1.pdf}}
+
+Pozwoliłem sobie dość brutalnie przyciąć wykres, ponieważ w przypadku
+logarytmowania osi X, obraz był trudny do interpretacji. To, co widać na
+grafice powyższej, to zarówno moja niekompetencja w pozostawieniu
+kategorii Unknown, jak również fakt, że treści kierowane wyłacznie do
+dorosłych w kategorii ``Hentai'', to zazwyczaj serie między o zakresie
+1-5 odcinków. Ze względów etycznych, nie będę kontynuować analizy tej
+kategorii. Kolejne kategorie to ``Mild nudity'' lub inaczej ``ecchi''
+która traktuje ryzykowne treści jako dodatek do głównego wątku. Powiem
+tylko podobnie jak w przypadku poprzedniej, że skupiona jest na krótkich
+seriach. Podobna do niej, okrojona z drażliwych treści ale
+pozostawiająca przemoc jest R - 17+. Biorąc pod uwage nasze wcześniejsze
+obserwacje, można przypuścić, że będzie ona obecna szczególnie w
+produkcjach emitowanych w telewizji. Podobnie zachowuje się również
+PG-13 a więc kategoria dla nastolatków, natomiast grupy PG - Children i
+G - All Ages oscyluje wokół jedynki z długimi prawymi ogonami, co może
+wskazywać na to, że w tych kategoriach najczęściej pojawiają się filmy
+dla dzieci, lub pojedyncze odcinki. Warto dodać do tej analizy długość
+odcinka:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#ggplot(rating, aes(x=Rating,y=Episodes,color=))+}
+\CommentTok{\#geom\_point()}
+\CommentTok{\# }\AlertTok{TODO}\CommentTok{ wykminić jak przekonwertować długość filmu z (x hr. xx min) na np minuty overall i zrobić ładny wykres}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Producenci}\label{producenci}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# }\AlertTok{TODO}\CommentTok{ zrobić zestawienie producent + gatunek jego najpopularniejszy}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Gatunki}\label{gatunki}
+
+Najlepsze zostawiłem jednak na koniec. Z racji iż nie dysponuję factorem
+w tej kategorii, pozwolę zaczerpnąć z mojego doświadczenia i
+przeanalizować kilka kategorii, które moim zdaniem są najbardziej
+charakterystyczne: - Action - prawdopodobnie najpopularniejsza grupa,
+wszędzie gdzie dzieje się walka, akcja, rywalizacja - Romance - romanse,
+jedna z popularniejszych kategorii ze względu na grupę docelową wielu
+produkcji - Thriller - straszne filmy - Fantasy - fantastyka, ucieczka
+do innych światów, eskapizm - Sports - Supernatural - superbohaterowie
+posiadający supermoce - Comedy - skecze, gagi, sytuacyjne - Slice of
+Life - bardzo popularna grupa, opowiada o życiu codziennym, traktuje o
+innym tempie życia niż to, które dyktuje nam otoczenie
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{action }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+   \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(Genres, }\StringTok{"Action"}\NormalTok{))}
+\NormalTok{romance }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+   \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(Genres, }\StringTok{"Romance"}\NormalTok{))}
+\NormalTok{thriller }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+   \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(Genres, }\StringTok{"Thriller"}\NormalTok{))}
+\NormalTok{fantasy }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+   \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(Genres, }\StringTok{"Fantasy"}\NormalTok{))}
+\NormalTok{sports }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+   \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(Genres, }\StringTok{"Sports"}\NormalTok{))}
+\NormalTok{supernatural }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+   \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(Genres, }\StringTok{"Supernatural"}\NormalTok{))}
+\NormalTok{comedy }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+   \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(Genres, }\StringTok{"Comedy"}\NormalTok{))}
+\NormalTok{slice\_of\_life }\OtherTok{\textless{}{-}}\NormalTok{ filtered }\SpecialCharTok{\%\textgreater{}\%}
+   \FunctionTok{filter}\NormalTok{(}\FunctionTok{str\_detect}\NormalTok{(Genres, }\StringTok{"Slice of Life"}\NormalTok{))}
+
+\NormalTok{genres }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(}
+\NormalTok{  action }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Gatunek =} \StringTok{"Action"}\NormalTok{),}
+\NormalTok{  romance }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Gatunek =} \StringTok{"Romance"}\NormalTok{),}
+\NormalTok{  thriller }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Gatunek =} \StringTok{"Thriller"}\NormalTok{),}
+\NormalTok{  fantasy }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Gatunek =} \StringTok{"Fantasy"}\NormalTok{),}
+\NormalTok{  sports }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Gatunek =} \StringTok{"Sports"}\NormalTok{),}
+\NormalTok{  supernatural }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Gatunek =} \StringTok{"Supernatural"}\NormalTok{),}
+\NormalTok{  comedy }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Gatunek =} \StringTok{"Comedy"}\NormalTok{),}
+\NormalTok{  slice\_of\_life }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Gatunek =} \StringTok{"Slice of Life"}\NormalTok{)}
+\NormalTok{)}
+\NormalTok{genres}\SpecialCharTok{$}\NormalTok{Gatunek }\OtherTok{\textless{}{-}} \FunctionTok{as.factor}\NormalTok{(genres}\SpecialCharTok{$}\NormalTok{Gatunek)}
+
+\NormalTok{genres }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(Gatunek) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{mean =} \FunctionTok{mean}\NormalTok{(Score),}
+    \AttributeTok{med =} \FunctionTok{median}\NormalTok{(Score),}
+    \AttributeTok{sd =} \FunctionTok{sd}\NormalTok{(Score),}
+    \AttributeTok{min =} \FunctionTok{min}\NormalTok{(Score),}
+    \AttributeTok{max =} \FunctionTok{max}\NormalTok{(Score),}
+    \AttributeTok{n =} \FunctionTok{n}\NormalTok{()}
+\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{arrange}\NormalTok{(}\FunctionTok{desc}\NormalTok{(n))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 8 x 7
+##   Gatunek        mean   med    sd   min   max     n
+##   <fct>         <dbl> <dbl> <dbl> <dbl> <dbl> <int>
+## 1 Comedy         6.88  6.94 0.838  2.01  9.19  2203
+## 2 Action         6.89  6.95 0.836  3.15  9.19  1840
+## 3 Fantasy        6.80  6.83 0.793  3.41  9.19  1362
+## 4 Romance        7.04  7.1  0.728  4.26  8.96   979
+## 5 Supernatural   7.07  7.17 0.843  3.52  8.96   803
+## 6 Slice of Life  7.09  7.16 0.822  4.51  9      659
+## 7 Sports         6.95  6.9  0.887  4.38  8.87   215
+## 8 Thriller       7.31  7.55 1.11   3.52  9.11    83
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(genres, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Gatunek, }\AttributeTok{y=}\NormalTok{Score))}\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-37-1.pdf}}
+
+Prosta tabelka a dostarczyła nam tak wiele. Posortowałem malejąco
+względem liczebności, dzięki czemu będę miał wstępny wgląd na siłę
+wskaźników. Najliczniejsza z poniższych grup to ``Comedy'' co może
+wskazywać, że fani Anime gustują w komedii, lub co bardziej
+prawdopodobne, większość anime ma mniejsze lub większe wstawki
+humorystyczne, co kategoryzuje je w tej grupie. Komedie z poniższego
+zestawienia mają prawie najmniejszą medianę, jednak to może być właśnie
+wynik wysokiej liczebności. Odchylenie całkiem wysokie, ale również
+zakres najszerszy - to komedie tworzą te najlepsze i najgorsze
+produkcje.\\
+Akcja i fantastyka mają zbliżone metryki, to w przypadku romansów
+zaczyna się dziać coś ciekaszego, ponieważ w ich przypadku odchylenie
+standardowe jest najmniejsze, czyli romansów może nie jest aż tyle co
+anime o akcji, jednak ich widzowie są przyzwyczajeni do tego, jak te
+serie wyglądają, wobec czego ten gatunek skupia faktycznie
+zainteresowanych w przeciwieństwie do Akcji, która też ma większe
+odchylenie i większy zakres ocen. Być może to dlatego, że więcej
+ekranizacji filmowych to właśnie filmy akcji? Zobaczmy
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(genres, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Popularity, }\AttributeTok{y=}\NormalTok{Score, }\AttributeTok{color=}\NormalTok{Gatunek))}\SpecialCharTok{+}
+  \FunctionTok{xlim}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{5000}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylim}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{10}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha=}\FloatTok{0.7}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{EDA_files/figure-latex/unnamed-chunk-38-1.pdf}}
+
+A jednak wykres wskazuje, że nie ma tu wielkiego skupienia tych
+wartości: anime każdego gatunku są rozproszone, co wskazuje na to, że
+społeczność fanów może być zróżnicowana i nie jest tak, że ``topkę''
+okupuje jeden lub dwa gatunki.
+
+\subsection{Podsumowanie}\label{podsumowanie}
+
+Dataset MyAnimeList dostarcza wiele wzorców na które warto zwrócić
+uwagę. Przede wszystkim dowiedzieliśmy się, że czołówkę popularnych
+Anime okupują produkcje emitowane w telewizji, bazowane na mangach,
+wypuszczane najczęściej w 12 lub 26 odcinkach, w których najczęściej
+przewijaja się komedie i sceny akcji.
+
+Analiza gustów ludzkich nie należy do najprostszych, dlatego zdaję sobie
+sprawę, że jest to EDA, która powinna drążyć do samego końca każdy z
+aspektów. Przedstawiłem natomiast Państwu wszystko do tego stopnia, do
+którego nie bałem się eksperymentować z kodem i datasetem, aby nie
+zapędzić się w błędne wnioski i hipotezy.
+
+Osobiście chciałbym tą analizą również zachęcić zainteresowanych do
+zagłębienia się w ten świat, ze względu na wartości, jakie niosą
+azjatyckie produkcje animowane. One różnią się podejściem od naszych,
+rodzimych seriali mentalnością. Slice of life dla osób, które potrzebują
+trochę zwolnić z natłokiem obowiązków, filmy dla tych, którzy szukają
+przypływu emocji, najlepiej w sali kinowej, czy też ci, którzy chcieliby
+co tydzień zasiadać do telenoweli, która będzie im stopniowo odkrywać
+kolejne warstwy historii. To wszystko jest na wyciągnięcie ręki, a
+witryna MyAnimeList.net jest doskonałym katalogiem wszystkich
+istniejących produkcji.
 
 \end{document}

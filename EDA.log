@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.12)  12 JAN 2026 23:28
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.12)  13 JAN 2026 22:59
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -417,17 +417,19 @@ File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 147.
 
-Overfull \hbox (97.24333pt too wide) in paragraph at lines 179--179
+Overfull \hbox (97.24333pt too wide) in paragraph at lines 190--190
 []\T1/lmtt/m/n/10 ##  $ Name         : chr  "Cowboy Bebop" "Cowboy Bebop: Tengoku no Tobira" "Trigun" "Witch Hunter Robin" ...[] 
  []
 
 
-Overfull \hbox (711.49155pt too wide) in paragraph at lines 179--179
+Overfull \hbox (711.49155pt too wide) in paragraph at lines 190--190
 []\T1/lmtt/m/n/10 ##  $ Genres       : chr  "Action, Adventure, Comedy, Drama, Sci-Fi, Space" "Action, Drama, Mystery, Sci-Fi, Space" "Action, Sci-Fi, Adventure, Comedy, Drama, Shounen" "Action, Mystery, Police, Supernatural, Drama, Magic" ...[] 
  []
 
+[1
 
-Overfull \hbox (49.99347pt too wide) in paragraph at lines 179--179
+{c:/Users/judasz/AppData/Roaming/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{c:/Users/judasz/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}]
+Overfull \hbox (49.99347pt too wide) in paragraph at lines 190--190
 []\T1/lmtt/m/n/10 ##  $ English.name : chr  "Cowboy Bebop" "Cowboy Bebop:The Movie" "Trigun" "Witch Hunter Robin" ...[] 
  []
 
@@ -439,18 +441,18 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.179 \end{verbatim}
+l.190 \end{verbatim}
                     
 You may provide a definition with
 \DeclareUnicodeCharacter 
 
  
 Here is how much of TeX's memory you used:
- 11458 strings out of 469518
- 176914 string characters out of 5468143
- 587817 words of memory out of 5000000
- 39958 multiletter control sequences out of 15000+600000
+ 11469 strings out of 469518
+ 177028 string characters out of 5468143
+ 596817 words of memory out of 5000000
+ 39961 multiletter control sequences out of 15000+600000
  653383 words of font info for 63 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 89i,6n,93p,557b,433s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 89i,6n,93p,557b,633s stack positions out of 10000i,1000n,20000p,200000b,200000s
 !  ==> Fatal error occurred, no output PDF file produced!

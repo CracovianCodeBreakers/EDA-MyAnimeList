@@ -3,9 +3,9 @@ title: "EDA MyAnimeList"
 author: "Kacper Janusz"
 date: "2026-01-11"
 output:
-  html_document: default
   word_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -34,6 +34,7 @@ który został przez autora wstępnie przefiltrowany, wobec czego proces schemat
 library(mice)
 library(ggplot2)
 library(dplyr)
+library(stringr)
 
 ```
 
@@ -135,19 +136,10 @@ head(dataset$Genres)
 length(unique(dataset$Genres))
 ```
 
-Posiada one wiele rekordów rodzielonych przecinkami, więc zdecydowałem się na potrzeby badań, zbudować funkcję, która zadziała na zasadzie "LIKE % %" w SQL. To pozwoli mi bez większych problemów mimo wszystko odszukać rekordy, które zawierają nie tylko tą kategorię, po której filtruję (oraz posłużą również do Procudentów, Wydawców i Studiów)
-
-```{r}
-like <- function(text, searched_string){
-  words <- strsplit(text, ",")[[1]]
-  words <- trimws(words)
-  return(searched_string %in% words)
-}
-```
-
-Funkcja zakłada, że po przecinkach będzie znajdować się dokładnie takie słowo, jakiego szukamy, nie przyjmuje niestety wycinków nazw podobnie jak LIKE w SQL, jednak dobrze, że w ogóle mogę się z tym w ten sposób uporać.  
+Posiada one wiele rekordów rodzielonych przecinkami, więc zdecydowałem się na potrzeby badań, skorzystać z pakietu "stringr" który pomoże mi po prostu wykryć w ciągu znaków konkretny gatunek.  
 
 Jeszcze tylko kilka poprawek typu zmiennych: 
+
 ```{r}
 dataset$Episodes <- as.numeric(dataset$Episodes)
 
@@ -160,7 +152,7 @@ str(dataset)
 
 ```
 
-## Wstępna analiza
+## Analiza danych
 
 ### Score
 
@@ -342,7 +334,7 @@ correlations <- filtered %>%
 print(correlations)
 ```
 
-Najjaśniejsza korelacja widnieje w przypadku muzyki, jednak na poprzednim scatterplocie piosenki zajmowały zdecydowanie miejsce na końcowych lokatach. Później silna korelacja jest w przypadku książki, Mangi, Originalu i Visual Novelki a także 4-koma mangi, czyli takiej opowieści komiksowej, która nakierowana jest na skecz sytuacjyjny i wobec czego jest zamknięta w czterech właśnie panelach na stronie.
+Najjaśniejsza korelacja widnieje w przypadku radio i muzyki, jednak na poprzednim scatterplocie piosenki zajmowały zdecydowanie miejsce na końcowych lokatach. Później silna korelacja jest w przypadku książki, Mangi, Originalu i Visual Novelki a także 4-koma mangi, czyli takiej opowieści komiksowej, która nakierowana jest na skecz sytuacjyjny i wobec czego jest zamknięta w czterech właśnie panelach na stronie.
 
 ### Episodes
 
@@ -391,10 +383,143 @@ ggplot(filtered, aes(x=Score, y=Episodes, color=Type))+
   geom_point()
 ```
 
-Tworzy nam się ciekawy pattern drabinki. Można z niej wywnioskować dwie rzeczy - Anime nadawane za pośrednictwem TV mają zasadniczo najwięcej odcinków, oraz znajdują się w czołówce wyniku, o czym mówiliśmy już wcześniej, natomiast może to też działać w drugą stronę - te produkcje, które spodobały się widowni, otrzymały kolejny i kolejny sezon, w wyniku czego odstające wartości w okolicach tysiąca to nie jakaś niszowa produkcja którą jakiś ambitny artysta tworzył w zaciszu domowym całe życie, ale również jedna z legendarnych anime:
+Tworzy nam się ciekawy pattern drabinki. Można z niej wywnioskować dwie rzeczy - Anime nadawane za pośrednictwem TV mają zasadniczo najwięcej odcinków, oraz znajdują się w czołówce wyniku, o czym mówiliśmy już wcześniej, natomiast może to też działać w drugą stronę - te produkcje, które spodobały się widowni, otrzymały kolejny i kolejny sezon, w wyniku czego odstające wartości w okolicach tysiąca to nie przypadek, a wieloletnie serie, które trwają tak długo jak "Klan" w porównaniu do innych polskich seriali:
 
 ```{r}
 filtered %>%
   arrange(desc(Episodes)) %>%
   slice_max(Episodes, n=5)
 ```
+
+A jak ilość odcinków ma się do popularności?
+
+```{r}
+
+ggplot(filtered, aes(x=Episodes, y=Popularity, color=Type))+
+  geom_point(alpha=0.7)+
+  scale_x_log10()
+```
+
+Z tego wykresu mogę tylko wyciągnąć wniosek, że to raczej ilość odcinków wynika w popularności, a nie popularność z ilości odcinków. Filmy przewijają się przez całe spektrum popularności, natomiast serie telewizyjne nie mają tendencji spadać na aż tak niskie lokaty. Widać też teraz lepiej, że serie TV zazwyczaj mają powyżej 10-ciu odcinków natomiast OVA kręcą się w okolicy 3-10 odcinków. Tak to wygląda prawdopodobnie ze względu na to, że OVA czyli kategoria podobna do "Special", która zakłada jednak, że jest to dodatek jednak pełnowymiarowy do podstawowej opowieści, nie jest tak mocno ustrukturyzowana i ilość odcinków w takich "sezonach" waha się w granicach kilku. Może to wskazywać na to, że studia nie mają ciśnienia ze strony wydawców, na trzymanie się ramowych ilości odcinków uznanych za standard. Dzięki temu, te produkcje nie są tak rozwleczone, tylko dokładnie tyle, ile twórcy chcą przekazać, zamykają w dogodnej ilości odcinków. 
+
+### Rating wiekowy
+
+Jako zmienna factorowa, będzie to dość proste
+
+```{r}
+
+rating <- filtered %>%
+  group_by(Rating)
+
+ggplot(rating, aes(x=Score, y=Rating))+
+  geom_boxplot()
+
+```
+
+Wykres pięknie obrazuje pozycyjne statystki dla każdej z kategorii wiekowych. Mediana wyników punktowych jest najwyższa w przypadku grupy R - 17+, a największe rozproszenie występuje w przypadku R+ - Mild Nudity oraz G - All Ages/
+
+```{r}
+
+ggplot(rating, aes(x=Episodes, y=Rating))+
+  xlim(0,50)+
+  geom_boxplot()
+
+```
+
+Pozwoliłem sobie dość brutalnie przyciąć wykres, ponieważ w przypadku logarytmowania osi X, obraz był trudny do interpretacji. To, co widać na grafice powyższej, to zarówno moja niekompetencja w pozostawieniu kategorii Unknown, jak również fakt, że treści kierowane wyłacznie do dorosłych w kategorii "Hentai", to zazwyczaj serie między o zakresie 1-5 odcinków. Ze względów etycznych, nie będę kontynuować analizy tej kategorii. Kolejne kategorie to "Mild nudity" lub inaczej "ecchi" która traktuje ryzykowne treści jako dodatek do głównego wątku. Powiem tylko podobnie jak w przypadku poprzedniej, że skupiona jest na krótkich seriach. Podobna do niej, okrojona z drażliwych treści ale pozostawiająca przemoc jest R - 17+. Biorąc pod uwage nasze wcześniejsze obserwacje, można przypuścić, że będzie ona obecna szczególnie w produkcjach emitowanych w telewizji. Podobnie zachowuje się również PG-13 a więc kategoria dla nastolatków, natomiast grupy PG - Children i G - All Ages oscyluje wokół jedynki z długimi prawymi ogonami, co może wskazywać na to, że w tych kategoriach najczęściej pojawiają się filmy dla dzieci, lub pojedyncze odcinki. Warto dodać do tej analizy długość odcinka:
+```{r}
+
+#ggplot(rating, aes(x=Rating,y=Episodes,color=))+
+#geom_point()
+# TODO wykminić jak przekonwertować długość filmu z (x hr. xx min) na np minuty overall i zrobić ładny wykres
+
+```
+
+### Producenci
+
+```{r}
+
+# TODO zrobić zestawienie producent + gatunek jego najpopularniejszy
+
+```
+
+### Gatunki
+
+Najlepsze zostawiłem jednak na koniec. Z racji iż nie dysponuję factorem w tej kategorii, pozwolę zaczerpnąć z mojego doświadczenia i przeanalizować kilka kategorii, które moim zdaniem są najbardziej charakterystyczne:
+- Action - prawdopodobnie najpopularniejsza grupa, wszędzie gdzie dzieje się walka, akcja, rywalizacja
+- Romance - romanse, jedna z popularniejszych kategorii ze względu na grupę docelową wielu produkcji
+- Thriller - straszne filmy 
+- Fantasy - fantastyka, ucieczka do innych światów, eskapizm
+- Sports 
+- Supernatural - superbohaterowie posiadający supermoce
+- Comedy - skecze, gagi, sytuacyjne
+- Slice of Life - bardzo popularna grupa, opowiada o życiu codziennym, traktuje o innym tempie życia niż to, które dyktuje nam otoczenie
+
+```{r}
+action <- filtered %>%
+   filter(str_detect(Genres, "Action"))
+romance <- filtered %>%
+   filter(str_detect(Genres, "Romance"))
+thriller <- filtered %>%
+   filter(str_detect(Genres, "Thriller"))
+fantasy <- filtered %>%
+   filter(str_detect(Genres, "Fantasy"))
+sports <- filtered %>%
+   filter(str_detect(Genres, "Sports"))
+supernatural <- filtered %>%
+   filter(str_detect(Genres, "Supernatural"))
+comedy <- filtered %>%
+   filter(str_detect(Genres, "Comedy"))
+slice_of_life <- filtered %>%
+   filter(str_detect(Genres, "Slice of Life"))
+
+genres <- bind_rows(
+  action %>% mutate(Gatunek = "Action"),
+  romance %>% mutate(Gatunek = "Romance"),
+  thriller %>% mutate(Gatunek = "Thriller"),
+  fantasy %>% mutate(Gatunek = "Fantasy"),
+  sports %>% mutate(Gatunek = "Sports"),
+  supernatural %>% mutate(Gatunek = "Supernatural"),
+  comedy %>% mutate(Gatunek = "Comedy"),
+  slice_of_life %>% mutate(Gatunek = "Slice of Life")
+)
+genres$Gatunek <- as.factor(genres$Gatunek)
+
+genres %>%
+  group_by(Gatunek) %>%
+  summarise(
+    mean = mean(Score),
+    med = median(Score),
+    sd = sd(Score),
+    min = min(Score),
+    max = max(Score),
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+ggplot(genres, aes(x=Gatunek, y=Score))+
+  geom_boxplot()
+
+
+```
+
+Prosta tabelka a dostarczyła nam tak wiele. Posortowałem malejąco względem liczebności, dzięki czemu będę miał wstępny wgląd na siłę wskaźników. Najliczniejsza z poniższych grup to "Comedy" co może wskazywać, że fani Anime gustują w komedii, lub co bardziej prawdopodobne, większość anime ma mniejsze lub większe wstawki humorystyczne, co kategoryzuje je w tej grupie. Komedie z poniższego zestawienia mają prawie najmniejszą medianę, jednak to może być właśnie wynik wysokiej liczebności. Odchylenie całkiem wysokie, ale również zakres najszerszy - to komedie tworzą te najlepsze i najgorsze produkcje.  
+Akcja i fantastyka mają zbliżone metryki, to w przypadku romansów zaczyna się dziać coś ciekaszego, ponieważ w ich przypadku odchylenie standardowe jest najmniejsze, czyli romansów może nie jest aż tyle co anime o akcji, jednak ich widzowie są przyzwyczajeni do tego, jak te serie wyglądają, wobec czego ten gatunek skupia faktycznie zainteresowanych w przeciwieństwie do Akcji, która też ma większe odchylenie i większy zakres ocen. Być może to dlatego, że więcej ekranizacji filmowych to właśnie filmy akcji? Zobaczmy
+
+```{r}
+
+ggplot(genres, aes(x=Popularity, y=Score, color=Gatunek))+
+  xlim(0,5000)+
+  ylim(4,10)+
+  geom_point(alpha=0.7)
+```
+
+A jednak wykres wskazuje, że nie ma tu wielkiego skupienia tych wartości: anime każdego gatunku są rozproszone, co wskazuje na to, że społeczność fanów może być zróżnicowana i nie jest tak, że "topkę" okupuje jeden lub dwa gatunki.  
+
+## Podsumowanie
+
+Dataset MyAnimeList dostarcza wiele wzorców na które warto zwrócić uwagę. Przede wszystkim dowiedzieliśmy się, że czołówkę popularnych Anime okupują produkcje emitowane w telewizji, bazowane na mangach, wypuszczane najczęściej w 12 lub 26 odcinkach, w których najczęściej przewijaja się komedie i sceny akcji.  
+  
+Analiza gustów ludzkich nie należy do najprostszych, dlatego zdaję sobie sprawę, że jest to EDA, która powinna drążyć do samego końca każdy z aspektów. Przedstawiłem natomiast Państwu wszystko do tego stopnia, do którego nie bałem się eksperymentować z kodem i datasetem, aby nie zapędzić się w błędne wnioski i hipotezy.  
+  
+Osobiście chciałbym tą analizą również zachęcić zainteresowanych do zagłębienia się w ten świat, ze względu na wartości, jakie niosą azjatyckie produkcje animowane. One różnią się podejściem od naszych, rodzimych seriali mentalnością. Slice of life dla osób, które potrzebują trochę zwolnić z natłokiem obowiązków, filmy dla tych, którzy szukają przypływu emocji, najlepiej w sali kinowej, czy też ci, którzy chcieliby co tydzień zasiadać do telenoweli, która będzie im stopniowo odkrywać kolejne warstwy historii. To wszystko jest na wyciągnięcie ręki, a witryna MyAnimeList.net jest doskonałym katalogiem wszystkich istniejących produkcji. 
