@@ -3,9 +3,9 @@ title: "EDA MyAnimeList"
 author: "Kacper Janusz"
 date: "2026-01-11"
 output:
-  word_document: default
-  pdf_document: default
   html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -14,7 +14,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 ## Słowem wstępu
 
-Wśród dostępnych treści rozrywkowych w Polsce, coraz większą popularność zdobywa gatunek "Anime". \
+Wśród dostępnych treści rozrywkowych w Polsce, coraz większą popularność zdobywa gatunek ["Anime"](https://pl.wikipedia.org/wiki/Anime). \
 Jest to japoński nurt, w którym tworzone są seriale oraz filmy, których główną charakterystyczną cechą 
 jest kreowanie opowieści w kreskówkowym świecie, O bardzo specyficznej stylistyce - nieproporcjonalne wymiary 
 twarzy, wielkie oczy, kolorowe włosy. W Polsce coraz częściej można się zetknąć z napływem tytułów
@@ -22,12 +22,14 @@ filmowych w kinach, wobec czego uznałem, że jest to doskonała okazja do przeb
 oraz poszukanie pewnych wzorców i ciekawych insightów na temat preferencji tej części społeczeństwa.
 
 ## Pochodzenie datasetu
-Wszystkie dane przedstawiane w poniższym arkuszu pochodzą z portalu MyAnimeList.net.  
+Wszystkie dane przedstawiane w poniższym arkuszu pochodzą z portalu [MyAnimeList.net](https://myanimelist.net).  
 Jest to jeden z największych portali internetowych, który posiada informacje na temat wszystkich tytułów japońskich seriali rysunkowych, które były, są i będą wydawane.
 Na portalu kaggle pojawia się co roku zestawienie wszystkich tytułów, od najstarszych istniejących rekordów, aż po te, zgromadzone w roku których dotyczy
 dataset. Pochodzi ono dokładnie z danych wyżej wspomnianego serwisu. (Na potrzeby bardziej wnikliwych analiz, deweloperzy udostępnili również API).
-Ja w analizie posłużę się danymi w 2023 roku, z prostego powodu - jest to najlepiej przygotowany dataset wśród tych z pozostałych lat. Wybrałem ten,
-który został przez autora wstępnie przefiltrowany, wobec czego proces schematyzowania zestawu danych powinien przebiec sprawniej.
+Ja w analizie posłużę się [danymi w 2023](https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset?select=user-filtered.csv) roku, z prostego powodu - jest to najlepiej przygotowany dataset wśród tych z pozostałych lat. Wybrałem ten,
+który został przez autora wstępnie przefiltrowany, wobec czego proces schematyzowania zestawu danych powinien przebiec sprawniej.  
+
+Zdania podświetlone na <span style="background-color: yellow">żółto</span> są moim zdaniem ciekawymi wątkami które rozwinąłem, jednak pozostają otwarte do dalszej analizy i interpretacji przez czytelnika. Wierzę, że lektura poniższych statystyk da Państwu ogólny pogląd na strukturę społeczności fanów anime i pozwoli być może złapać inspirację, a nawet zachęcić do zagłębienia się w jeden z fantastycznych światów.
 
 ## Użyte biblioteki
 ```{r}
@@ -35,6 +37,7 @@ library(mice)
 library(ggplot2)
 library(dplyr)
 library(stringr)
+library(tidyverse)
 
 ```
 
@@ -60,12 +63,14 @@ dataset$anime_id <- NULL
 dataset$Name <- dataset$English.name
 dataset$English.name <- NULL
 
-
 ```
+
 Kolumna "Synopsis" to streszczenie konkretnego tytułu, na ten moment nie znajduję przyczyny, aby ją pozostawić. Potencjalnie możnaby dokonać analizy, jak bardzo emocjonalne są powyższe opisy i jak bardzo mogą wpływać na opinię oglądających, jednak pozostawiam ten temat jako opcjonalny na później.  
+
 ```{r}
 dataset$sypnopsis <- NULL
 ```
+
 Kolumny "Type", "Episodes", "Aired", "Premiered", "Duration", "Rating"  odnoszą się typowo do okresu release'u produkcji, czyli mówią nam w skrócie: Gdzie, kiedy, i w ilu odcinkach był emitowany serial/film, ile trwał każdy z odcinków, jakie miał ograniczenia wiekowe oraz kiedy pojawiła się w ogóle pierwsza oficjalna wzmianka o nim.  
 
 "Source" oznacza, czy produkcja jest bazowana na opowieści z książki, czy też jest to oryginalna fabuła.  
@@ -86,7 +91,7 @@ md.pattern(dataset)
 ## Braki danych
 Przefiltrowany dataset posiada przeszło 14 tysięcy rekordów, a mimo to zdarzyły się takie, które nie posiadają pewnych informacji. "Rating" to jednak kategoria wiekowa, więc można przypuszczać, że są seriale, które nie miały przyznanej żadnej kategorii, być może przez to, że jeszcze nie wyszły, a może właśnie dlatego, że są tak stare. Postanowiłem zostawić te tytuły i zachować ostrożność podczas filtracji.
 
-Natomiast czyha jedno zagrożenie które odkryłem w późniejszym etapie analizy (jest to swego rodzaju wiadomość z przyszłośći)
+Natomiast czyha jedno zagrożenie które odkryłem w późniejszym etapie analizy (jest to swego rodzaju wiadomość z przyszłości)
 
 ```{r}
 
@@ -144,6 +149,33 @@ Jeszcze tylko kilka poprawek typu zmiennych:
 dataset$Episodes <- as.numeric(dataset$Episodes)
 
 ```
+
+Kłopotliwa okazuje się również rubryka długości trwania odcinka, ponieważ zawiera dane w niewygodnym formacie
+
+```{r}
+
+str(dataset$Duration)
+
+```
+
+Stringr tutaj nie pomoże przez fakt że musimy znaleźć łańcuch, którego nie włączamy w zwracaną wartośĆ. Jedyny znany mi sposób żeby przekonwertować te dane na liczbowe (w moim założeniu na minuty), to wyrażenia regularne, które umożliwiają wyszukanie patternu, ale zwrócenie wartości, która leży przed nim. Na szczęście kolumna jest dość jednolita i polega tylko na tym, że to liczb dołączone są przypisy jednostek czasu. Wobec tego wyszukam sobie kolejno godzin, minut i sekund oraz przeliczę na minuty.
+
+```{r}
+convert_to_minutes <- function(x){
+  hours <- as.numeric(str_extract(x, "\\d+(?=\\s*hr)")) %>% replace_na(0)
+  minutes <- as.numeric(str_extract(x, "\\d+(?=\\s*min)")) %>% replace_na(0)
+  seconds <- as.numeric(str_extract(x, "\\d+(?=\\s*sec)")) %>% replace_na(0)
+  
+  return((hours*60)+minutes+(seconds/60))
+}
+
+dataset$Duration <- convert_to_minutes(dataset$Duration)
+
+str(dataset$Duration)
+
+```
+
+Dodatkowo pipe i funkcja replace_na posłuży ustawieniu domyślnej wartości na 0 w razie uzyskania NA.
 
 Finalny kształt datasetu:
 
@@ -221,7 +253,7 @@ ggplot(filtered, aes(x=Score))+
 
 ```
 
-Mediana wyszła dzięki temu wyższa. Jest wyższa od średniej co każde wnioskować, że skośność również jest lewostronna, ale minimalna. Rozkład ma teraz kształt, który można porównać do rozkładu normalnego. Jaka obserwacja się nasuwa? Użytkownicy chętnie oceniają produkcje ponad połowę skali, i są to głównie wartości w przedziale 5-9 punktów. Rozkład ma wybicie nieco ponad wynikiem 7 gwiazdek (ponieważ to jednostka stosowana w MAL'u), co może wskazywać, że ludzie mają tendencję do traktowania siódemki jako taki "złoty środek" - nie jest to tytuł wybitny, nie jest on średni, jest dobry, w sam raz pomiędzy 5 a 9, ponieważ 10 to już byłoby arcydzieło. Wariancja i odchylenie w granicy jedynki, mamy tutaj dane skupione wokół centrum o niskiej zmienności.
+Mediana wyszła dzięki temu wyższa. Jest wyższa od średniej co każde wnioskować, że skośność również jest lewostronna, ale minimalna. Rozkład ma teraz kształt, który można porównać do rozkładu normalnego. Jaka obserwacja się nasuwa? Użytkownicy chętnie oceniają produkcje ponad połowę skali, i są to głównie wartości w przedziale 5-9 punktów. Rozkład ma wybicie nieco ponad wynikiem 7 gwiazdek (ponieważ to jednostka stosowana w MAL'u), co może wskazywać, że <span style="background-color: yellow">ludzie mogą mieć tendencję do traktowania siódemki jako "złoty środek" - nie jest to tytuł wybitny, nie jest on średni, jest dobry, w sam raz pomiędzy 5 a 9</span>, ponieważ 10 to już byłoby arcydzieło. Wariancja i odchylenie w granicy jedynki, mamy tutaj dane skupione wokół centrum o niskiej zmienności.
 
 ### Type
 
@@ -289,7 +321,7 @@ filtered %>%
   ) 
 ```
 
-Wygląda na to, że moje wcześniejsze stwierdzenie nie jest tak dalekie prawdzie. Rzeczywiście łączna liczba, oraz średnia interakcji jest wyższa, ale jednak mediana jest wyższa w przypadku Speciali. To pozwala wysnuć domysł, że społeczności zgromadzone wokół jednego tytułu dość wiernie mu towarzyszą, generując pod bonusowymi odcinkami bardziej przewidywalną oglądalność, niż w przypadku filmów, na które ludzie mogą iść pod wpływem tzw hype'u.  
+Wygląda na to, że moje wcześniejsze stwierdzenie nie jest tak dalekie prawdzie. Rzeczywiście łączna liczba, oraz średnia interakcji jest wyższa, ale jednak mediana jest wyższa w przypadku Speciali. To pozwala wysnuć domysł, że <span style="background-color: yellow">społeczności zgromadzone wokół jednego tytułu dość wiernie mu towarzyszą</span>, generując pod bonusowymi odcinkami bardziej przewidywalną oglądalność, niż w przypadku filmów, na które ludzie mogą iść pod wpływem tzw hype'u.  
 
 ```{r}
 
@@ -323,7 +355,7 @@ ggplot(clear_sources, aes(x=Popularity, y=Score, color=Source))+
 
 ```
 
-Teraz lepiej widać, że zdecydowana większość topowych Anime oparta jest na mandze. Być może wynika to z sentymentu widzów, którzy znają już historię, a teraz mają okazję doświadczyć ekranizacji ich ulubionych postaci? A może ekranizacje mang są po prostu doskonałe i nie ma znaczenia czy ktoś tą mangę zna czy nie, ona mimo wszystko trzyma pewien poziom? Jako osoba, która od pięciu lat interesuje się tym środowiskiem, osobiście mam wrażenie, że oba stwierdzenia mają pokrycie w empirii. Trzeci source czyli gry, to bardzo rozproszony zbiór punktów, który nie charakteryzuje się zwiększoną obecnością ani w czołówce, ani w peletonie. Oglądając tak te punkty, aż prosi się o zbadanie korelacji
+Teraz lepiej widać, że zdecydowana <span style="background-color: yellow">większość topowych Anime oparta jest na mandze</span>. Być może wynika to z sentymentu widzów, którzy znają już historię, a teraz mają okazję doświadczyć ekranizacji ich ulubionych postaci? A może ekranizacje mang są po prostu doskonałe i nie ma znaczenia czy ktoś tą mangę zna czy nie, ona mimo wszystko trzyma pewien poziom? Jako osoba, która od pięciu lat interesuje się tym środowiskiem, osobiście mam wrażenie, że oba stwierdzenia mają pokrycie w empirii. Trzeci source czyli gry, to bardzo rozproszony zbiór punktów, który nie charakteryzuje się zwiększoną obecnością ani w czołówce, ani w peletonie. Oglądając tak te punkty, aż prosi się o zbadanie korelacji
 
 ```{r}
 correlations <- filtered %>%
@@ -366,7 +398,7 @@ ggplot(filtered, aes(x=Episodes))+
   geom_histogram(binwidth=1)
 ```
 
-Tutaj dokładnie widać te skoki, 1, 12, 26. To są przyjęte przez społeczność standardowe długości serii. 1 to film/OVA/Special, 12 to standardowy sezon, a 25/26 to zazwyczaj produkcje kończące się na jednym sezonie. Gdy spojrzymy na miejsce 2 oraz 3 w rankingu, to obie te serie trwają właśnie kolejno 16 i 24 odcinki, natomiast pierwsza jest niestandardowa i składa się z 64 odcinków. Są jeszcze dwa garby
+Tutaj dokładnie widać te skoki, <span style="background-color: yellow">1, 12, 26. To są przyjęte przez społeczność standardowe długości serii.</span> 1 to film/OVA/Special, 12 to standardowy sezon, a 25/26 to zazwyczaj produkcje kończące się na jednym sezonie. Gdy spojrzymy na miejsce 2 oraz 3 w rankingu, to obie te serie trwają właśnie kolejno 16 i 24 odcinki, natomiast pierwsza jest niestandardowa i składa się z 64 odcinków. Są jeszcze dwa garby
 ```{r}
 ggplot(filtered, aes(x=Episodes))+
   xlim(30, 50)+
@@ -374,7 +406,7 @@ ggplot(filtered, aes(x=Episodes))+
   geom_histogram(binwidth=1)
 ```
 
-39 i 48 to kolejne popularne długości serii. Czy długość sezonu ma jakiś wpływ na popularność albo ocenę anime?
+39 i 48 to kolejne popularne długości serii. <span style="background-color: yellow">Czy długość sezonu ma jakiś wpływ na popularność albo ocenę anime?</span>
 
 ```{r}
 
@@ -383,7 +415,7 @@ ggplot(filtered, aes(x=Score, y=Episodes, color=Type))+
   geom_point()
 ```
 
-Tworzy nam się ciekawy pattern drabinki. Można z niej wywnioskować dwie rzeczy - Anime nadawane za pośrednictwem TV mają zasadniczo najwięcej odcinków, oraz znajdują się w czołówce wyniku, o czym mówiliśmy już wcześniej, natomiast może to też działać w drugą stronę - te produkcje, które spodobały się widowni, otrzymały kolejny i kolejny sezon, w wyniku czego odstające wartości w okolicach tysiąca to nie przypadek, a wieloletnie serie, które trwają tak długo jak "Klan" w porównaniu do innych polskich seriali:
+Tworzy nam się ciekawy pattern drabinki. Można z niej wywnioskować dwie rzeczy - Anime nadawane za pośrednictwem TV mają zasadniczo najwięcej odcinków, oraz znajdują się w czołówce wyniku, o czym mówiliśmy już wcześniej, natomiast może to też działać w drugą stronę - <span style="background-color: yellow">te produkcje, które spodobały się widowni, otrzymały kolejny i kolejny sezon</span>, w wyniku czego odstające wartości w okolicach tysiąca to nie przypadek, a wieloletnie serie, które trwają tak długo jak "Klan" w porównaniu do innych polskich seriali:
 
 ```{r}
 filtered %>%
@@ -400,7 +432,7 @@ ggplot(filtered, aes(x=Episodes, y=Popularity, color=Type))+
   scale_x_log10()
 ```
 
-Z tego wykresu mogę tylko wyciągnąć wniosek, że to raczej ilość odcinków wynika w popularności, a nie popularność z ilości odcinków. Filmy przewijają się przez całe spektrum popularności, natomiast serie telewizyjne nie mają tendencji spadać na aż tak niskie lokaty. Widać też teraz lepiej, że serie TV zazwyczaj mają powyżej 10-ciu odcinków natomiast OVA kręcą się w okolicy 3-10 odcinków. Tak to wygląda prawdopodobnie ze względu na to, że OVA czyli kategoria podobna do "Special", która zakłada jednak, że jest to dodatek jednak pełnowymiarowy do podstawowej opowieści, nie jest tak mocno ustrukturyzowana i ilość odcinków w takich "sezonach" waha się w granicach kilku. Może to wskazywać na to, że studia nie mają ciśnienia ze strony wydawców, na trzymanie się ramowych ilości odcinków uznanych za standard. Dzięki temu, te produkcje nie są tak rozwleczone, tylko dokładnie tyle, ile twórcy chcą przekazać, zamykają w dogodnej ilości odcinków. 
+Z tego wykresu mogę tylko wyciągnąć wniosek, że to <span style="background-color: yellow">raczej ilość odcinków wynika w popularności, a nie popularność z ilości odcinków.</span> Filmy przewijają się przez całe spektrum popularności, natomiast serie telewizyjne nie mają tendencji spadać na aż tak niskie lokaty. Widać też teraz lepiej, że serie TV zazwyczaj mają powyżej 10-ciu odcinków natomiast OVA kręcą się w okolicy 3-10 odcinków. Tak to wygląda prawdopodobnie ze względu na to, że OVA czyli kategoria podobna do "Special", która zakłada jednak, że jest to dodatek jednak pełnowymiarowy do podstawowej opowieści, nie jest tak mocno ustrukturyzowana i ilość odcinków w takich "sezonach" waha się w granicach kilku. <span style="background-color: yellow">Może to wskazywać na to, że studia nie mają ciśnienia ze strony wydawców, na trzymanie się ramowych ilości odcinków uznanych za standard</span>. Dzięki temu, te produkcje nie są tak rozwleczone, tylko dokładnie tyle, ile twórcy chcą przekazać, zamykają w dogodnej ilości odcinków. 
 
 ### Rating wiekowy
 
@@ -427,21 +459,28 @@ ggplot(rating, aes(x=Episodes, y=Rating))+
 ```
 
 Pozwoliłem sobie dość brutalnie przyciąć wykres, ponieważ w przypadku logarytmowania osi X, obraz był trudny do interpretacji. To, co widać na grafice powyższej, to zarówno moja niekompetencja w pozostawieniu kategorii Unknown, jak również fakt, że treści kierowane wyłacznie do dorosłych w kategorii "Hentai", to zazwyczaj serie między o zakresie 1-5 odcinków. Ze względów etycznych, nie będę kontynuować analizy tej kategorii. Kolejne kategorie to "Mild nudity" lub inaczej "ecchi" która traktuje ryzykowne treści jako dodatek do głównego wątku. Powiem tylko podobnie jak w przypadku poprzedniej, że skupiona jest na krótkich seriach. Podobna do niej, okrojona z drażliwych treści ale pozostawiająca przemoc jest R - 17+. Biorąc pod uwage nasze wcześniejsze obserwacje, można przypuścić, że będzie ona obecna szczególnie w produkcjach emitowanych w telewizji. Podobnie zachowuje się również PG-13 a więc kategoria dla nastolatków, natomiast grupy PG - Children i G - All Ages oscyluje wokół jedynki z długimi prawymi ogonami, co może wskazywać na to, że w tych kategoriach najczęściej pojawiają się filmy dla dzieci, lub pojedyncze odcinki. Warto dodać do tej analizy długość odcinka:
+
 ```{r}
 
-#ggplot(rating, aes(x=Rating,y=Episodes,color=))+
-#geom_point()
-# TODO wykminić jak przekonwertować długość filmu z (x hr. xx min) na np minuty overall i zrobić ładny wykres
+ggplot(rating, aes(x=Duration,y=Rating,color=Type))+
+  geom_point()
 
 ```
+
+Z powyższego wykresu wynika jedna rzecz - kategoria "Hentai" ma zdecydowanie krótsze odcinki od pozostałych ratingów. Treści dla dzieci są zarówno krótkie jak i długie (filmy i formy 5-10 minutowych odcinków). Zestawmy to jeszcze z Popularnością a rating potraktujmy jako factor
+
+
+```{r}
+ggplot(rating, aes(x=Popularity, y=Duration, color=Rating))+
+  geom_point()
+
+```
+
+Ciężko wyznaczyć tutaj jakiś wiodący trend, widać jedynie, że produkcje krótkie, kategoryzowane dla wszystkich grup wiekowych, zazwyczaj trzymają się w ogonie rankingu, być może i zrozumiale - <span style="background-color: yellow">prawdopodobnie wynika to z tego, że dzieci nie wystawiają ocen na platformie, i w rankungu na czele pozostają aktywni użytkownicy którzy potrafią już posługiwać się komputerem</span>. 
 
 ### Producenci
 
-```{r}
-
-# TODO zrobić zestawienie producent + gatunek jego najpopularniejszy
-
-```
+Niestety na tą kategorię nie wystarczyło czasu, będzie ona uzupełniona po terminie oddania w formie osobistego uzupełnienia projektu.
 
 ### Gatunki
 
@@ -503,8 +542,8 @@ ggplot(genres, aes(x=Gatunek, y=Score))+
 
 ```
 
-Prosta tabelka a dostarczyła nam tak wiele. Posortowałem malejąco względem liczebności, dzięki czemu będę miał wstępny wgląd na siłę wskaźników. Najliczniejsza z poniższych grup to "Comedy" co może wskazywać, że fani Anime gustują w komedii, lub co bardziej prawdopodobne, większość anime ma mniejsze lub większe wstawki humorystyczne, co kategoryzuje je w tej grupie. Komedie z poniższego zestawienia mają prawie najmniejszą medianę, jednak to może być właśnie wynik wysokiej liczebności. Odchylenie całkiem wysokie, ale również zakres najszerszy - to komedie tworzą te najlepsze i najgorsze produkcje.  
-Akcja i fantastyka mają zbliżone metryki, to w przypadku romansów zaczyna się dziać coś ciekaszego, ponieważ w ich przypadku odchylenie standardowe jest najmniejsze, czyli romansów może nie jest aż tyle co anime o akcji, jednak ich widzowie są przyzwyczajeni do tego, jak te serie wyglądają, wobec czego ten gatunek skupia faktycznie zainteresowanych w przeciwieństwie do Akcji, która też ma większe odchylenie i większy zakres ocen. Być może to dlatego, że więcej ekranizacji filmowych to właśnie filmy akcji? Zobaczmy
+Prosta tabelka a dostarczyła nam tak wiele. Posortowałem malejąco względem liczebności, dzięki czemu będę miał wstępny wgląd na siłę wskaźników. <span style="background-color: yellow">Najliczniejsza z poniższych grup to "Comedy" co może wskazywać, że fani Anime gustują w komedii, lub co bardziej prawdopodobne, większość anime ma mniejsze lub większe wstawki humorystyczne</span>, co kategoryzuje je w tej grupie. Komedie z poniższego zestawienia mają prawie najmniejszą medianę, jednak to może być właśnie wynik wysokiej liczebności. Odchylenie całkiem wysokie, ale również zakres najszerszy - to komedie tworzą te najlepsze i najgorsze produkcje.  
+Akcja i fantastyka mają zbliżone metryki, to w przypadku romansów zaczyna się dziać coś ciekaszego, ponieważ w ich przypadku odchylenie standardowe jest najmniejsze, czyli <span style="background-color: yellow">romansów może nie jest aż tyle co anime akcji, jednak ich widzowie są przyzwyczajeni do tego, jak te serie wyglądają, wobec czego ten gatunek skupia faktycznie zainteresowanych w przeciwieństwie do Akcji, która też ma większe odchylenie i większy zakres ocen</span>. Być może to dlatego, że więcej ekranizacji filmowych to właśnie filmy akcji? Zobaczmy
 
 ```{r}
 
@@ -518,8 +557,13 @@ A jednak wykres wskazuje, że nie ma tu wielkiego skupienia tych wartości: anim
 
 ## Podsumowanie
 
-Dataset MyAnimeList dostarcza wiele wzorców na które warto zwrócić uwagę. Przede wszystkim dowiedzieliśmy się, że czołówkę popularnych Anime okupują produkcje emitowane w telewizji, bazowane na mangach, wypuszczane najczęściej w 12 lub 26 odcinkach, w których najczęściej przewijaja się komedie i sceny akcji.  
+Dataset MyAnimeList dostarcza wiele wzorców na które warto zwrócić uwagę. Przede wszystkim dowiedzieliśmy się, że czołówkę popularnych Anime okupują produkcje emitowane w telewizji, bazowane na mangach, wypuszczane najczęściej w 12 lub 26 odcinkach, w których najczęściej przewijaja się komedie i sceny akcji.
   
 Analiza gustów ludzkich nie należy do najprostszych, dlatego zdaję sobie sprawę, że jest to EDA, która powinna drążyć do samego końca każdy z aspektów. Przedstawiłem natomiast Państwu wszystko do tego stopnia, do którego nie bałem się eksperymentować z kodem i datasetem, aby nie zapędzić się w błędne wnioski i hipotezy.  
   
 Osobiście chciałbym tą analizą również zachęcić zainteresowanych do zagłębienia się w ten świat, ze względu na wartości, jakie niosą azjatyckie produkcje animowane. One różnią się podejściem od naszych, rodzimych seriali mentalnością. Slice of life dla osób, które potrzebują trochę zwolnić z natłokiem obowiązków, filmy dla tych, którzy szukają przypływu emocji, najlepiej w sali kinowej, czy też ci, którzy chcieliby co tydzień zasiadać do telenoweli, która będzie im stopniowo odkrywać kolejne warstwy historii. To wszystko jest na wyciągnięcie ręki, a witryna MyAnimeList.net jest doskonałym katalogiem wszystkich istniejących produkcji. 
+
+Źródła użyte podczas tworzenia analizy:
+[Dataset anime](https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset?select=user-filtered.csv)
+[Stringr regular expressions](https://stringr.tidyverse.org/articles/regular-expressions.html)
+[]
