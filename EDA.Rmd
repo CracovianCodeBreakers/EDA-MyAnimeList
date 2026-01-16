@@ -14,7 +14,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 ## Słowem wstępu
 
-Wśród dostępnych treści rozrywkowych w Polsce, coraz większą popularność zdobywa gatunek ["Anime"](https://pl.wikipedia.org/wiki/Anime). \
+Wśród dostępnych treści rozrywkowych w Polsce, coraz większą popularność zdobywa gatunek ["Anime"](https://pl.wikipedia.org/wiki/Anime).  
 Jest to japoński nurt, w którym tworzone są seriale oraz filmy, których główną charakterystyczną cechą 
 jest kreowanie opowieści w kreskówkowym świecie, O bardzo specyficznej stylistyce - nieproporcjonalne wymiary 
 twarzy, wielkie oczy, kolorowe włosy. W Polsce coraz częściej można się zetknąć z napływem tytułów
@@ -458,7 +458,7 @@ ggplot(rating, aes(x=Episodes, y=Rating))+
 
 ```
 
-Pozwoliłem sobie dość brutalnie przyciąć wykres, ponieważ w przypadku logarytmowania osi X, obraz był trudny do interpretacji. To, co widać na grafice powyższej, to zarówno moja niekompetencja w pozostawieniu kategorii Unknown, jak również fakt, że treści kierowane wyłacznie do dorosłych w kategorii "Hentai", to zazwyczaj serie między o zakresie 1-5 odcinków. Ze względów etycznych, nie będę kontynuować analizy tej kategorii. Kolejne kategorie to "Mild nudity" lub inaczej "ecchi" która traktuje ryzykowne treści jako dodatek do głównego wątku. Powiem tylko podobnie jak w przypadku poprzedniej, że skupiona jest na krótkich seriach. Podobna do niej, okrojona z drażliwych treści ale pozostawiająca przemoc jest R - 17+. Biorąc pod uwage nasze wcześniejsze obserwacje, można przypuścić, że będzie ona obecna szczególnie w produkcjach emitowanych w telewizji. Podobnie zachowuje się również PG-13 a więc kategoria dla nastolatków, natomiast grupy PG - Children i G - All Ages oscyluje wokół jedynki z długimi prawymi ogonami, co może wskazywać na to, że w tych kategoriach najczęściej pojawiają się filmy dla dzieci, lub pojedyncze odcinki. Warto dodać do tej analizy długość odcinka:
+Pozwoliłem sobie dość brutalnie przyciąć wykres, ponieważ w przypadku logarytmowania osi X, obraz był trudny do interpretacji. To, co widać na grafice powyższej, to zarówno moja niekompetencja w pozostawieniu kategorii Unknown, jak również fakt, że treści kierowane wyłacznie do dorosłych w kategorii "Hentai", to zazwyczaj serie o zakresie 1-5 odcinków. Ze względów etycznych, nie będę kontynuować analizy tej kategorii. Kolejne kategorie to "Mild nudity" lub inaczej "ecchi" która traktuje ryzykowne treści jako dodatek do głównego wątku. Powiem tylko podobnie jak w przypadku poprzedniej, że skupiona jest na krótkich seriach. Podobna do niej, okrojona z drażliwych treści ale pozostawiająca przemoc jest R - 17+. Biorąc pod uwage nasze wcześniejsze obserwacje, można przypuścić, że będzie ona obecna szczególnie w produkcjach emitowanych w telewizji. Podobnie zachowuje się również PG-13 a więc kategoria dla nastolatków, natomiast grupy PG - Children i G - All Ages oscyluje wokół jedynki z długimi prawymi ogonami, co może wskazywać na to, że w tych kategoriach najczęściej pojawiają się filmy dla dzieci, lub pojedyncze odcinki. Warto dodać do tej analizy długość odcinka:
 
 ```{r}
 
@@ -557,13 +557,19 @@ A jednak wykres wskazuje, że nie ma tu wielkiego skupienia tych wartości: anim
 
 ## Podsumowanie
 
-Dataset MyAnimeList dostarcza wiele wzorców na które warto zwrócić uwagę. Przede wszystkim dowiedzieliśmy się, że czołówkę popularnych Anime okupują produkcje emitowane w telewizji, bazowane na mangach, wypuszczane najczęściej w 12 lub 26 odcinkach, w których najczęściej przewijaja się komedie i sceny akcji.
+Dataset MyAnimeList dostarcza wiele wzorców na które warto zwrócić uwagę. Przede wszystkim statystycznie czołówkę popularnych Anime okupują produkcje emitowane w telewizji, bazowane na mangach, wypuszczane najczęściej w 12 lub 26 odcinkach, w których najczęściej przewijaja się komedie i sceny akcji.
   
 Analiza gustów ludzkich nie należy do najprostszych, dlatego zdaję sobie sprawę, że jest to EDA, która powinna drążyć do samego końca każdy z aspektów. Przedstawiłem natomiast Państwu wszystko do tego stopnia, do którego nie bałem się eksperymentować z kodem i datasetem, aby nie zapędzić się w błędne wnioski i hipotezy.  
+
+Rzeczy, na które osobiście zwracam uwagę i biję się w pierś, to pomieszanie mowy angielskiej z polską - jest to fundamentalny problem którego nie rozwiązałem ze względu na czas. Drugi czynnik, to niewielka skala analizy w stosunku do skali danych jakie posiadam (25 kolumn i 8000 rekordów zasługuje na dogłębniejsze dochodzenie). Dodatkowo wizualizacje skupiają się głównie wokół scatterplotów, histogramów i boxplotów, osobiście czułem się z nimi najbardziej biegle, ale całkowicie rozumiem, że w projekcie mogłem zawrzeć większą różnorodność. Przy okazji mogłem również pozbyć się kategorii "Unknown" w kilku wykresach i odfiltrować całkowicie.
+
+Mimo wszystko podjąłem się przerobienia tak wielkiego datasetu ze względu na osobiste wieloletnie zamiłowanie do świata animowanych powieści pełnych akcji, piękna i wzorców które inspirowały mnie w okresie dojrzewania.  
+
+Analizy natomiast nie zamierzam porzucić, ponieważ czuję, że było to bardzo ciekawe doświadczenie wędrować przez punkty zaczepienia, szukając wniosków i łącząc kropki. Dokument będę rozwijać we własnym zakresie i udostępnię swoją analize na [Githubie](https://github.com/CracovianCodeBreakers/EDA-MyAnimeList)
   
 Osobiście chciałbym tą analizą również zachęcić zainteresowanych do zagłębienia się w ten świat, ze względu na wartości, jakie niosą azjatyckie produkcje animowane. One różnią się podejściem od naszych, rodzimych seriali mentalnością. Slice of life dla osób, które potrzebują trochę zwolnić z natłokiem obowiązków, filmy dla tych, którzy szukają przypływu emocji, najlepiej w sali kinowej, czy też ci, którzy chcieliby co tydzień zasiadać do telenoweli, która będzie im stopniowo odkrywać kolejne warstwy historii. To wszystko jest na wyciągnięcie ręki, a witryna MyAnimeList.net jest doskonałym katalogiem wszystkich istniejących produkcji. 
 
 Źródła użyte podczas tworzenia analizy:
 [Dataset anime](https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset?select=user-filtered.csv)
 [Stringr regular expressions](https://stringr.tidyverse.org/articles/regular-expressions.html)
-[]
+[MyAnimeList](https://myanimelist.net)
