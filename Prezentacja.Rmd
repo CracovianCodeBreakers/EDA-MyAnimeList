@@ -1,0 +1,16 @@
+---
+title: "Prezentacja MyAnimeLIst"
+author: "Janusz Kacper, Mucha Kacper"
+date: "2026-01-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Breadcrumb:
+- Przerzucić wstęp i zakończenie, skrócić wszystkie sentymentalne teksty moje jakieś co filozofowałem, możesz zostawić czym jest anime itd ale wszystko co jest o tym że jest nieidealny projekt 
+- Przerzucić tylko wstępne wykresy i dodać adnotacje (może w css jakiś div/button) że w aplikacji Shiny jest dostępna wersja z modyfikacją liczb i atrybutów
+- Poszukać jakie jeszcze statystyki można wyliczyć na tych danych (czy gdzieś są dane liczbowe w których nie policzyłem statystyk pozycyjnych)
+
