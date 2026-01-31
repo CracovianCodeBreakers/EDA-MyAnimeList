@@ -103,12 +103,54 @@ ui <- fluidPage(
             )
           )
         ),
-        
+        tabPanel(
+          "Histogram ilości odcinków serii",
+          sidebarLayout(
+            sidebarPanel(
+              sliderInput("bins_episodes", "Liczba słupków:", min = 1, max = 50, value = 30),
+              sliderInput("xlim_episodes", "Zakres liczby odcinków (Oś X):", 
+                          min = 0, max = 1000, value = c(0, 50))
+            ),
+            mainPanel(
+              plotOutput("episodesHist")
+            )
+          )
+        ),
+        tabPanel(
+          "Wykres punktowy popularność do score względem gatunku",
+          sidebarLayout(
+            sidebarPanel(
+              selectInput("genre", "Wybierz Gatunek Anime:", 
+                          choices = c(
+                            "Action", 
+                            "Romance",
+                            "Thriller", 
+                            "Slice of Life", 
+                            "Fantasy", 
+                            "Sports",
+                            "Comedy"
+                          )),
+              checkboxInput("genre_smooth", "Dodaj linię trendu", FALSE)
+            ),
+            mainPanel(
+              plotOutput("genreScatter")
+            )
+          )
+        ),
+        tabPanel(
+          "Wykres punktowy ilości odcinków do score względem typu emisji",
+          sidebarLayout(
+            sidebarPanel(
+              selectInput("type_scatter", "Wybierz Typ Anime:", 
+                          choices = c("TV", "Movie","Music", "OVA", "Special", "ONA" ))
+            ),
+            mainPanel(
+              plotOutput("episodesScatter")
+            )
+          )
+        ),
       )
-      
     )
-    
-    
 )
 
 # Sekcja serwerowa/renderowanie plotów
@@ -163,6 +205,84 @@ server <- function(input, output) {
       
     })
     
+    output$episodesHist <- renderPlot({
+      
+      filtered <- filtered %>%
+        filter(!is.na(Episodes))
+      
+      ggplot(filtered, aes(x=Episodes))+
+        geom_histogram(bins = input$bins_episodes)+
+        scale_y_log10()+
+        xlim(input$xlim_episodes)
+    })
+    
+    output$genreScatter <- renderPlot({
+      
+      filtered <- filtered %>%
+        filter(!is.na("Genres"))
+      
+      action <- filtered %>%
+        filter(str_detect(Genres, "Action"))
+      romance <- filtered %>%
+        filter(str_detect(Genres, "Romance"))
+      thriller <- filtered %>%
+        filter(str_detect(Genres, "Thriller"))
+      fantasy <- filtered %>%
+        filter(str_detect(Genres, "Fantasy"))
+      sports <- filtered %>%
+        filter(str_detect(Genres, "Sports"))
+      supernatural <- filtered %>%
+        filter(str_detect(Genres, "Supernatural"))
+      comedy <- filtered %>%
+        filter(str_detect(Genres, "Comedy"))
+      slice_of_life <- filtered %>%
+        filter(str_detect(Genres, "Slice of Life"))
+      
+      genres <- bind_rows(
+        action %>% mutate(Gatunek = "Action"),
+        romance %>% mutate(Gatunek = "Romance"),
+        thriller %>% mutate(Gatunek = "Thriller"),
+        fantasy %>% mutate(Gatunek = "Fantasy"),
+        sports %>% mutate(Gatunek = "Sports"),
+        supernatural %>% mutate(Gatunek = "Supernatural"),
+        comedy %>% mutate(Gatunek = "Comedy"),
+        slice_of_life %>% mutate(Gatunek = "Slice of Life")
+      )
+      genres$Gatunek <- as.factor(genres$Gatunek)
+      
+      
+      data_to_plot <- genres %>% 
+        filter(Gatunek == input$genre)
+      
+      
+      wykres <- ggplot(data_to_plot, aes(x=Popularity, y=Score, color=Gatunek))+
+        geom_point()
+      
+      if(input$genre_smooth){
+        wykres <- wykres + geom_smooth(method = "lm", color = "red", se = FALSE)
+      }
+      
+      return(wykres)
+      
+    })
+    
+    output$episodesScatter <- renderPlot({
+      
+      data_to_plot <- filtered %>%
+        filter(!is.na(Episodes)) %>%
+        filter(Type == input$type_scatter)
+      
+      
+      wykres <- ggplot(data_to_plot, aes(x=Score, y=Episodes, color=Type))+
+        geom_point()
+      
+      if(input$source_trend){
+        wykres <- wykres + geom_smooth(method = "lm", color = "red", se = FALSE)
+      }
+      
+      return(wykres)
+      
+    })
 }
 
 # Wywołanie aplikacji Shiny
