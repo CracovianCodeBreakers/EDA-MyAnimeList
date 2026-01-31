@@ -9,8 +9,286 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Breadcrumb:
-- Przerzucić wstęp i zakończenie, skrócić wszystkie sentymentalne teksty moje jakieś co filozofowałem, możesz zostawić czym jest anime itd ale wszystko co jest o tym że jest nieidealny projekt 
-- Przerzucić tylko wstępne wykresy i dodać adnotacje (może w css jakiś div/button) że w aplikacji Shiny jest dostępna wersja z modyfikacją liczb i atrybutów
-- Poszukać jakie jeszcze statystyki można wyliczyć na tych danych (czy gdzieś są dane liczbowe w których nie policzyłem statystyk pozycyjnych)
 
+## Słowem wstępu
+
+Wśród dostępnych treści rozrywkowych w Polsce, coraz większą popularność zdobywa gatunek ["Anime"](https://pl.wikipedia.org/wiki/Anime).  
+Jest to japoński nurt, w którym tworzone są seriale oraz filmy, których główną charakterystyczną cechą 
+jest kreowanie opowieści w kreskówkowym świecie, O bardzo specyficznej stylistyce - nieproporcjonalne wymiary 
+twarzy, wielkie oczy, kolorowe włosy. W Polsce coraz częściej można się zetknąć z napływem tytułów
+filmowych w kinach, wobec czego uznałem, że jest to doskonała okazja do przebadania społeczności widzów "anime", 
+oraz poszukanie pewnych wzorców i ciekawych insightów na temat preferencji tej części społeczeństwa.
+
+Ja w analizie posłużę się [danymi w 2023](https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset?select=user-filtered.csv) roku, z prostego powodu - jest to najlepiej przygotowany dataset wśród tych z pozostałych lat. Wybrałem ten,
+który został przez autora wstępnie przefiltrowany, wobec czego proces schematyzowania zestawu danych powinien przebiec sprawniej.
+
+## Użyte biblioteki
+```{r}
+library(mice)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tidyverse)
+
+```
+
+## Wstępna analiza
+
+```{r Import + struktura}
+dataset <- read.csv("anime-filtered.csv")
+str(dataset)
+```
+
+Nasz dataset składa się w sumie z 25 kolumn i 14952 rekordów. Może się to wydawać kolosalna liczba w konteście skali tej analizy,
+jednak sądzę, że w tym przypadku dobrze jest mieć jak najwięcej datapointów 
+
+```{r}
+summary(dataset)
+```
+
+
+### Opis kolumn
+Mamy 25 kolumn, w których mamy dane ilościowe, jakościowe, oraz widać od razu, że pewne z nich doskonale byłoby przekonwertować na factory.  
+Kolumny "anime_id", "Name", "English.name", "Japanese.name" to kolumny, które pomagają rozpoznać, o który tytuł dokładnie chodzi. Nie potrzebujemy ich wszystkich na potrzeby naszej analizy, postanowiłem zostawić wyłącznie "English.name" które pozostanie pod nazwą "Name" 
+
+```{r}
+dataset$Japanese.name <- NULL
+dataset$anime_id <- NULL
+dataset$Name <- dataset$English.name
+dataset$English.name <- NULL
+
+```
+Kolumna "Synopsis" to streszczenie konkretnego tytułu, na ten moment nie znajduję przyczyny, aby ją pozostawić.
+
+```{r}
+dataset$sypnopsis <- NULL
+```
+Następna grupa wartości związana jest już stricte ze społecznością fanów anime, ponieważ kolumny "Ranked", "Score" oraz "Popularity" odpowiadają kolejno za miejsce w tabeli najlepszych tytułów, średni wynik punktowy oraz miejsce w tabeli tytułów, które najczęściej były oglądane i oceniane.  
+
+Ostatnia grupa kolumn, to te mówiące o zachowaniu widzów: "Members" mówi dokładnie ile osób oceniło/obejrzało/jakkolwiek "ruszyło" daną produkcję, "Favorites" to dla ilu produkcja znajduje się w kategorii "ulubione", "Watching" to ile osób obecnie ogląda dany tytuł , "Completed" jako ukończony tytuł, "On.Hold" oznacza, że osoba wstrzymała oglądanie, a "Dropped" to metryka mówiąca ile osób nie skończyło sezonu/filmu, porzucając zakończenie. 
+
+Najważniejszą z nich jednak zostawiłem na koniec - "Genre", czyli gatunek. Moim zdaniem będzie to bardzo przydatna informacja podczas analizy preferencji użytkowników. Wierzę, że uda się z niej wyciągnąć najwięcej spostrzeżeń. 
+
+```{r}
+
+md.pattern(dataset)
+
+```
+## Braki danych
+Przefiltrowany dataset posiada przeszło 14 tysięcy rekordów, a mimo to zdarzyły się takie, które nie posiadają pewnych informacji. "Rating" to jednak kategoria wiekowa, więc można przypuszczać, że są seriale, które nie miały przyznanej żadnej kategorii, być może przez to, że jeszcze nie wyszły, a może właśnie dlatego, że są tak stare. Postanowiłem zostawić te tytuły i zachować ostrożność podczas filtracji.
+
+Natomiast czyha jedno zagrożenie które odkryłem w późniejszym etapie analizy (jest to swego rodzaju wiadomość z przyszłości)
+
+```{r}
+
+dataset %>%
+  filter(Name == "Unknown") %>%
+  summarise(n())
+```
+
+odsiewamy anime bez tytułu. W ten sposób znika nam blisko połowa rekordów.
+
+```{r}
+dataset <- dataset %>%
+  filter(Name != "Unknown")
+
+```
+
+## Porządkowanie struktury datasetu
+Przechodzę do konwersji arkusza do postaci, w której będę mógł nim swobodnie manipulować
+Mam kolumny, które wprost proszą się o konwersję na factor.
+
+```{r Factory wstępne}
+table(dataset$Type)
+dataset$Type <- as.factor(dataset$Type)
+table(dataset$Source)
+dataset$Source <- as.factor(dataset$Source)
+table(dataset$Rating)
+dataset$Rating <- as.factor(dataset$Rating)
+```
+
+Ale mam też takie, które choć bym chciał, nie jestem w stanie przekształcić w nieinwazyjny sposób. Kolumny takie jak:
+
+```{r }
+length(unique(dataset$Studios))
+length(dataset$Studios)
+length(unique(dataset$Producers))
+length(dataset$Producers)
+length(unique(dataset$Licensors))
+length(dataset$Licensors)
+```
+
+Pasowałyby jako factor, ale tych wartości jest zbyt wiele, blisko 9-15% całego datasetu, więc pozostawiam je jako napis.
+
+I szczególnie ta, w której pokładam najwięcej nadziei:
+
+```{r}
+head(dataset$Genres)
+length(unique(dataset$Genres))
+```
+
+Posiada one wiele rekordów rodzielonych przecinkami, więc zdecydowałem się na potrzeby badań, skorzystać z pakietu "stringr" który pomoże mi po prostu wykryć w ciągu znaków konkretny gatunek.  
+
+Jeszcze tylko kilka poprawek typu zmiennych: 
+
+```{r}
+dataset$Episodes <- as.numeric(dataset$Episodes)
+
+```
+
+Kłopotliwa okazuje się również rubryka długości trwania odcinka, ponieważ zawiera dane w niewygodnym formacie
+
+```{r}
+
+str(dataset$Duration)
+
+```
+
+Stringr tutaj nie pomoże przez fakt że musimy znaleźć łańcuch, którego nie włączamy w zwracaną wartośĆ. Jedyny znany mi sposób żeby przekonwertować te dane na liczbowe (w moim założeniu na minuty), to wyrażenia regularne, które umożliwiają wyszukanie patternu, ale zwrócenie wartości, która leży przed nim. Na szczęście kolumna jest dość jednolita i polega tylko na tym, że to liczb dołączone są przypisy jednostek czasu. Wobec tego wyszukam sobie kolejno godzin, minut i sekund oraz przeliczę na minuty.
+
+```{r}
+convert_to_minutes <- function(x){
+  hours <- as.numeric(str_extract(x, "\\d+(?=\\s*hr)")) %>% replace_na(0)
+  minutes <- as.numeric(str_extract(x, "\\d+(?=\\s*min)")) %>% replace_na(0)
+  seconds <- as.numeric(str_extract(x, "\\d+(?=\\s*sec)")) %>% replace_na(0)
+  
+  return((hours*60)+minutes+(seconds/60))
+}
+
+dataset$Duration <- convert_to_minutes(dataset$Duration)
+
+str(dataset$Duration)
+
+```
+
+Dodatkowo pipe i funkcja replace_na posłuży ustawieniu domyślnej wartości na 0 w razie uzyskania NA.
+
+## Finalny kształt datasetu:
+### Score
+
+Przechodzę do analizy liczb, dostępnych w naszym datasecie.  
+Na pierwszy ogień przeanalizuję końcową ocenę użytkowników, dzięki czemu dowiemy się, w jakim zakresie (0-10) wystawiane są najchętniej oceny
+
+```{r}
+str(dataset)
+
+```
+```{r}
+filtered <- dataset %>%
+  filter(Score <= 6.5 | Score >= 6.52)
+
+mean(filtered$Score)
+median(filtered$Score)
+sd(filtered$Score)
+var(filtered$Score)
+
+ggplot(filtered, aes(x=Score))+
+  geom_histogram(binwidth=.1)
+
+```
+
+Biorąc pod uwagę wartość popularności (im niższa tym wyżej w rankingu = popularniejszy tytuł), mediana pokazuje, że znaczna część danych jest w okolicy trzeciego kwartyla, wobec czego można wnioskować, że rozkład ma skośność lewostronną. 
+
+
+Anime jest podzielone na kilka typów wiec dzieki temu wykresowi przedstawimy jaki jest najpopularniejszy
+```{r}
+
+ggplot(filtered, aes(x=Popularity, y=Score, color=Type))+
+  geom_point()
+```
+
+W tym przypadku widać doskonale czarnego konia, którym jest kategoria “TV” mająca przewagę wśród najpopularniejszych serii, wynika to prawdopodobnie z tego że jest ich największa ilość w porównaniu do innych kategori.
+
+```{r}
+filtered %>%
+  filter(Type=="TV") %>%
+  arrange(desc(Score)) %>%
+  slice_max(Score, n=3)
+```      
+Otrzymaliśmy czołówkę, uważaną za najlepsze tytuły wszechczasów (przez większość). Warto zauważyć, że dwa pierwsze tytuły bazują na tzw. “Mandze” czyli Japońskiej wersji komiksów. Trzecia natomiast bazowana jest na “Visual Novel” czyli książce przeplatanej sporadycznie grafikami. Spróbuję rozrysować podobny scatterplot jak wyżej
+
+```{r}
+ggplot(filtered, aes(x=Popularity, y=Score, color=Source))+
+  geom_point()
+```
+widać, że zdecydowana większość topowych Anime oparta jest na mandze. Być może wynika to z sentymentu widzów, którzy znają już historię, a teraz mają okazję doświadczyć ekranizacji ich ulubionych postaci?
+
+Teraz sprawdzę jaka jest średnia długośc seri dzieki czemu dowiemy sie jaka długośc jest najbardziej popularna
+```{r}
+filtered$Episodes <- as.numeric(filtered$Episodes)
+ggplot(filtered, aes(x=Episodes))+
+  xlim(0,50)+
+  scale_y_log10()+
+  geom_histogram(binwidth=1)
+```
+
+Widzimy że histogram ma nawiększe wartości w przedziale od 0-30. Jest tak daletego że standardem długości przyjeło sie 12 i 24 odcinki
+
+
+Teraz sprawdzimy jaki typ seri produkuje najwiecej odzinków oraz jaka jest przez to ocena
+```{r}
+ggplot(filtered, aes(x=Score, y=Episodes, color=Type))+
+  scale_y_log10()+
+  geom_point()
+```
+
+Tworzy nam się ciekawy pattern drabinki. Można z niej wywnioskować dwie rzeczy - Anime nadawane za pośrednictwem TV mają zasadniczo najwięcej odcinków, oraz znajdują się w czołówce wyniku, natomiast może to też działać w drugą stronę - te produkcje, które spodobały się widowni, otrzymały kolejny i kolejny sezon, w wyniku czego odstające wartości w okolicach tysiąca to nie przypadek, a wieloletnie serie.
+
+## Gatunki
+
+Najlepsze zostawiłem jednak na koniec. Z racji iż nie dysponuję factorem w tej kategorii, pozwolę zaczerpnąć z mojego doświadczenia i przeanalizować kilka kategorii, które moim zdaniem są najbardziej charakterystyczne: - Action - prawdopodobnie najpopularniejsza grupa, wszędzie gdzie dzieje się walka, akcja, rywalizacja - Romance - romanse, jedna z popularniejszych kategorii ze względu na grupę docelową wielu produkcji - Thriller - straszne filmy - Fantasy - fantastyka, ucieczka do innych światów, eskapizm - Sports - Supernatural - superbohaterowie posiadający supermoce - Comedy - skecze, gagi, sytuacyjne - Slice of Life - bardzo popularna grupa, opowiada o życiu codziennym, traktuje o innym tempie życia niż to, które dyktuje nam otoczenie
+```{r}
+action <- filtered %>%
+   filter(str_detect(Genres, "Action"))
+romance <- filtered %>%
+   filter(str_detect(Genres, "Romance"))
+thriller <- filtered %>%
+   filter(str_detect(Genres, "Thriller"))
+fantasy <- filtered %>%
+   filter(str_detect(Genres, "Fantasy"))
+sports <- filtered %>%
+   filter(str_detect(Genres, "Sports"))
+supernatural <- filtered %>%
+   filter(str_detect(Genres, "Supernatural"))
+comedy <- filtered %>%
+   filter(str_detect(Genres, "Comedy"))
+slice_of_life <- filtered %>%
+   filter(str_detect(Genres, "Slice of Life"))
+
+genres <- bind_rows(
+  action %>% mutate(Gatunek = "Action"),
+  romance %>% mutate(Gatunek = "Romance"),
+  thriller %>% mutate(Gatunek = "Thriller"),
+  fantasy %>% mutate(Gatunek = "Fantasy"),
+  sports %>% mutate(Gatunek = "Sports"),
+  supernatural %>% mutate(Gatunek = "Supernatural"),
+  comedy %>% mutate(Gatunek = "Comedy"),
+  slice_of_life %>% mutate(Gatunek = "Slice of Life")
+)
+genres$Gatunek <- as.factor(genres$Gatunek)
+
+genres %>%
+  group_by(Gatunek) %>%
+  summarise(
+    mean = mean(Score),
+    med = median(Score),
+    sd = sd(Score),
+    min = min(Score),
+    max = max(Score),
+    n = n()
+  ) %>%
+  arrange(desc(n))
+```
+Mamy duża ilośc kategori wiec sprawdźmy jaka kategoria piętnuje nad innymi pod względem popularności oraz ilości odcinków
+```{r}
+ggplot(genres, aes(x=Popularity, y=Score, color=Gatunek))+
+  xlim(0,5000)+
+  ylim(4,10)+
+  geom_point(alpha=0.7)
+```
+wykres wskazuje, że nie ma tu wielkiego skupienia tych wartości: anime każdego gatunku są rozproszone, co wskazuje na to, że społeczność fanów może być zróżnicowana i nie jest tak, że “topkę” okupuje jeden lub dwa gatunki.
+
+## Podsumowanie
+
+Dataset MyAnimeList dostarcza wiele wzorców na które warto zwrócić uwagę. Przede wszystkim statystycznie czołówkę popularnych Anime okupują produkcje emitowane w telewizji, bazowane na mangach, wypuszczane najczęściej w 12 lub 26 odcinkach, w których najczęściej przewijaja się komedie i sceny akcji.
+  
