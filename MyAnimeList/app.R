@@ -1,4 +1,4 @@
-# Sekcja bibliotek użytych w celu filtrowania i renderowania wykresów
+# Sekcja bibliotek użytych w celu filtrowania i renderowania wykresów, wychodzimy z założenia, że sprzęt na którym jest uruchamiany plik Shiny zainstalowane ma już poniższe pakiety
 
 library(shiny)
 library(dplyr)
@@ -7,7 +7,7 @@ library(ggplot2)
 
 # sekcja filtrowania datasetu
 
-dataset <- read.csv("../anime-filtered.csv")
+dataset <- read.csv("anime-filtered.csv")
 
 dataset$Japanese.name <- NULL
 dataset$anime_id <- NULL
